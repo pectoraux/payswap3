@@ -88,6 +88,24 @@
       "assurance": "HIGH_ASSURANCE",
       "requiredProofs": ["static", "dynamic", "discrimination"],
       "nextAction": "Implement capabilities, commitments, operating windows and verification metadata."
+    },
+    {
+      "id": "WORK-032",
+      "status": "in_flight",
+      "baseRevision": "45a3cbb6f0b16eb7d627c8015114ace5bba50b3b",
+      "branch": "work-032/core-integrity-remediation",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination", "transformation-completeness"],
+      "nextAction": "Remediate canonical core integrity weaknesses from W002 and provide adversarial/conformance evidence."
+    },
+    {
+      "id": "WORK-033",
+      "status": "in_flight",
+      "baseRevision": "45a3cbb6f0b16eb7d627c8015114ace5bba50b3b",
+      "branch": "work-033/governance-revision-binding",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Remediate revision binding and fail-closed dependency parsing in repository governance."
     }
   ],
   "activeHandoffs": [
@@ -97,7 +115,9 @@
     {"id":"WORK-006","status":"in_flight","baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","branch":"work-006/money","lastVerifiedRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","evidence":["WORK-002 complete","parallel antichain activation reconciled to current main"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/money and verify required proofs."},
     {"id":"WORK-007","status":"in_flight","baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","branch":"work-007/interoperability","lastVerifiedRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","evidence":["WORK-002 complete","parallel antichain activation reconciled to current main"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/interoperability and verify required proofs."},
     {"id":"WORK-008","status":"in_flight","baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","branch":"work-008/intent","lastVerifiedRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","evidence":["WORK-002 complete","parallel antichain activation reconciled to current main"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/intent and verify required proofs."},
-    {"id":"WORK-009","status":"in_flight","baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","branch":"work-009/capability","lastVerifiedRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","evidence":["WORK-002 complete","parallel antichain activation reconciled to current main"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/capability and verify required proofs."}
+    {"id":"WORK-009","status":"in_flight","baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","branch":"work-009/capability","lastVerifiedRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","evidence":["WORK-002 complete","parallel antichain activation reconciled to current main"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/capability and verify required proofs."},
+    {"id":"WORK-032","status":"in_flight","baseRevision":"45a3cbb6f0b16eb7d627c8015114ace5bba50b3b","branch":"work-032/core-integrity-remediation","lastVerifiedRevision":"45a3cbb6f0b16eb7d627c8015114ace5bba50b3b","evidence":["WORK-002 complete","corrective architecture finding W002-1..W002-5","activation from current governance-only descendant of implementation frontier"],"limitations":["runtime remediation not yet present"],"nextAction":"Implement src/core remediation and verify required proofs."},
+    {"id":"WORK-033","status":"in_flight","baseRevision":"45a3cbb6f0b16eb7d627c8015114ace5bba50b3b","branch":"work-033/governance-revision-binding","lastVerifiedRevision":"45a3cbb6f0b16eb7d627c8015114ace5bba50b3b","evidence":["WORK-001 complete","corrective architecture finding W001-1/W001-2","activation from current governance-only descendant of implementation frontier"],"limitations":["governance remediation not yet present"],"nextAction":"Implement scripts/tests/governance remediation and verify required proofs."}
   ],
   "decisions": [
     {"type":"execution-reconciliation","date":"2026-09-02","note":"Rebound WORK-001 to a fresh worker ref after a connector branch-write anomaly; no history rewrite or force-push was used."},
@@ -105,9 +125,10 @@
     {"type":"work-order-activation","date":"2026-09-02","workOrder":"WORK-002","baseRevision":"f8048bb2111771bca4e96eb2f709dad75dc1bc77","note":"Architect activated W002 because WORK-001 is complete."},
     {"type":"work-order-completion","date":"2026-09-02","workOrder":"WORK-002","pr":3,"mergeCommit":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","note":"Architect reviewed exact PR head, merged W002, and reconciled completion state."},
     {"type":"parallel-antichain-activation","date":"2026-09-02","workOrders":["WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009"],"baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","note":"All seven Work Orders have complete W002 implementation dependency, distinct owned surfaces, and no unmerged sibling implementation dependency."},
-    {"type":"state-reconciliation","date":"2026-09-02","workOrders":["WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009"],"baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","note":"Architect reconciled program-state to the actual main ref and confirmed the active sibling branches are rooted at db5a829. The prior e03aeb currentMain was stale metadata, not an implementation divergence."}
+    {"type":"state-reconciliation","date":"2026-09-02","workOrders":["WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009"],"baseRevision":"db5a82975188feaae53d0fe11a146fb7cd97e364","note":"Architect reconciled program-state to the verified implementation frontier. Subsequent main commits were governance/control-plane only and do not invalidate existing worker branch bases."},
+    {"type":"corrective-parallel-activation","date":"2026-09-02","workOrders":["WORK-032","WORK-033"],"baseRevision":"45a3cbb6f0b16eb7d627c8015114ace5bba50b3b","note":"Architect activated corrective remediations on the current governance-only descendant. W032/W033 have disjoint protected surfaces and complete implementation dependencies; their bases are later than currentMain because currentMain remains the verified implementation frontier."}
   ],
-  "note": "W003-W009 are the active safe parallel antichain after W002. Each starts from the same stable main revision and owns a disjoint authoritative surface.",
+  "note": "W003-W009 remain active from the verified implementation frontier. W032-W033 are active corrective workers from current main after governance-only changes; currentMain denotes the latest verified implementation frontier, not a requirement that every control-plane commit be embedded in every worker base.",
   "sourceOfTruth": "repository",
   "repository": "pectoraux/payswap3",
   "architectBootstrap": "agents/architect-prompt.md",
