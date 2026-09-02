@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "authority": "derived_projection",
-  "activeWorkOrder": null,
-  "required": [],
+  "activeWorkOrder": "WORK-002",
+  "required": ["static", "dynamic", "transformation-completeness"],
   "satisfied": ["WORK-001"],
   "blocked": []
 }
