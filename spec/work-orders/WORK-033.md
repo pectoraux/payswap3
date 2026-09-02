@@ -1,6 +1,6 @@
 # WORK-033 — Governance revision-binding remediation
 
-Status: planned
+Status: in_flight
 
 Objective: Close the W001 governance gap so repository validation detects stale program/base revisions and malformed dependency declarations fail closed.
 
