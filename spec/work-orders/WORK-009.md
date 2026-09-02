@@ -1,11 +1,11 @@
 # WORK-009 — Capability, commitments and operating windows
 
-Status: in_flight
+Status: blocked
 
 Objective: capability, capability commitments, operating windows, verification metadata.
 
 Assurance: HIGH_ASSURANCE
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/capability/`.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: register and verify a sandbox provider capability and test expiry/breach.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
