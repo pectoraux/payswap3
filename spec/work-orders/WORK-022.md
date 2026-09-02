@@ -1,6 +1,6 @@
 # WORK-022 — Data governance, privacy and recourse
 
-Status: planned
+Status: in_flight
 
 Objective: data policy, disclosure, retention, selective disclosure, cases/claims/recourse.
 
