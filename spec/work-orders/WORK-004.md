@@ -1,6 +1,6 @@
 # WORK-004 — Identity, authentication, authority and keys
 
-Status: in_flight
+Status: blocked
 
 Objective: principal, credential, authentication, authorization grants, mandates, keys, threshold approval interfaces.
 
