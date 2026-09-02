@@ -1,6 +1,6 @@
 # WORK-032 — Canonical core integrity remediation
 
-Status: in_flight
+Status: complete
 
 Objective: Remediate W002 canonical-core weaknesses identified by independent Architect review so the shared object/envelope layer is safe to consume as protocol foundation.
 
