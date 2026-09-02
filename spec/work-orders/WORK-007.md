@@ -1,6 +1,6 @@
 # WORK-007 — Endpoint resolution and interoperability
 
-Status: blocked
+Status: in_flight
 
 Objective: endpoint, resolution, canonical payment messages, adapter contracts, status mapping.
 

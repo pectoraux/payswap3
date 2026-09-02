@@ -1,6 +1,6 @@
 # WORK-003 — Command/event transition kernel
 
-Status: blocked
+Status: in_flight
 
 Objective: deterministic command validation, state transitions, event envelopes, idempotency, version conflicts, invariant hooks.
 
