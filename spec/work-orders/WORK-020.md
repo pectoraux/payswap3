@@ -1,6 +1,6 @@
 # WORK-020 — Extension runtime and capability marketplace
 
-Status: planned
+Status: in_flight
 
 Objective: manifest, sandbox, capability grants, invocation lifecycle, dependency DAG, resource quotas, contribution measurement.
 
