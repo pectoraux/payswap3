@@ -1153,6 +1153,10 @@ class TrustRegistry:
                 raise CoreValidationError(
                     f"parent grant {parent_grant_id} is not an ACTIVE covering grant of {grantor_principal_id}"
                 )
+            if not window_contains(parent.not_before, parent.not_after, as_of):
+                raise CoreValidationError(
+                    f"parent grant {parent_grant_id} is not valid at the delegation instant"
+                )
             return parent
         candidates.sort(key=lambda grant: (-grant.delegation_depth, grant.grant_id))
         for parent in candidates:

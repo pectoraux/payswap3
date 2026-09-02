@@ -1124,6 +1124,79 @@ class DelegationGrantTests(unittest.TestCase):
                 operator=ROOT,
             )
 
+    def test_expired_explicit_parent_cannot_delegate_at_later_as_of(self) -> None:
+        """Discrimination: an ACTIVE parent whose window ended may not delegate later.
+
+        ``trust/grant/bob-pay`` stays ACTIVE with validity window [T1, T3)
+        (half-open) while the requested child window [T2, T3) remains a strict
+        subset of it; delegation at any as_of at or after T3 must fail closed.
+        """
+        registry = self._registry()
+        for later_as_of in (T3, T4, T5):
+            with self.assertRaises(CoreValidationError):
+                registry.delegate_grant(
+                    grant_id="trust/grant/bob-expired-child",
+                    grantor_principal_id=BOB,
+                    grantee_principal_id=CAROL,
+                    authority_class=AuthorityClass.R4,
+                    scope_domains=(PAY_DOMAIN,),
+                    not_before=T2,
+                    not_after=T3,
+                    delegation_depth=0,
+                    amount_limits=(USD_CAP,),
+                    jurisdictions=("EU",),
+                    parent_grant_id="trust/grant/bob-pay",
+                    as_of=later_as_of,
+                    operator=ROOT,
+                )
+        # the rejection is total (no partial mutation) and leaves the parent untouched
+        self.assertEqual(registry.grant("trust/grant/bob-pay").state, "ACTIVE")
+        with self.assertRaises(CoreValidationError):
+            registry.grant("trust/grant/bob-expired-child")
+
+    def test_pre_window_explicit_parent_cannot_delegate(self) -> None:
+        """The same guard rejects a parent not yet valid at the delegation instant."""
+        registry = self._registry()
+        with self.assertRaises(CoreValidationError):
+            registry.delegate_grant(
+                grant_id="trust/grant/bob-early-child",
+                grantor_principal_id=BOB,
+                grantee_principal_id=CAROL,
+                authority_class=AuthorityClass.R4,
+                scope_domains=(PAY_DOMAIN,),
+                not_before=T2,
+                not_after=T3,
+                delegation_depth=0,
+                amount_limits=(USD_CAP,),
+                jurisdictions=("EU",),
+                parent_grant_id="trust/grant/bob-pay",
+                as_of=T0,
+                operator=ROOT,
+            )
+
+    def test_in_window_explicit_parent_delegation_remains_valid(self) -> None:
+        """Control: an explicitly supplied parent valid at as_of still delegates."""
+        registry = self._registry()
+        child = registry.delegate_grant(
+            grant_id="trust/grant/bob-explicit-child",
+            grantor_principal_id=BOB,
+            grantee_principal_id=CAROL,
+            authority_class=AuthorityClass.R4,
+            scope_domains=(PAY_DOMAIN,),
+            not_before=T2,
+            not_after=T3,
+            delegation_depth=0,
+            amount_limits=(USD_CAP,),
+            jurisdictions=("EU",),
+            parent_grant_id="trust/grant/bob-pay",
+            as_of=T2,
+            operator=ROOT,
+        )
+        self.assertEqual(child.parent_grant_id, "trust/grant/bob-pay")
+        self.assertEqual(child.state, "ACTIVE")
+        self.assertEqual(child.envelope.provenance.recorded_at, T2)
+        self.assertIs(registry.grant("trust/grant/bob-explicit-child"), child)
+
     def test_delegation_requires_distinct_grantee_and_active_grantee(self) -> None:
         registry = self._registry()
         with self.assertRaises(CoreValidationError):
