@@ -50,7 +50,7 @@ def parse_deps(text: str):
     return [] if raw.lower() == "none" else re.findall(r"(WORK-\d{3})\s+\((contract|implementation|integration)\)", raw)
 
 def parse_owned(text: str):
-    m = re.search(r"Owned surfaces:\s*`([^`]+)`", text)
+    m = re.search(r"Owned surfaces:\s*`([^`]+)" , text)
     if not m:
         fail("missing owned-surface declaration")
     return {x.strip() for x in m.group(1).split(",")}
@@ -90,7 +90,7 @@ def main() -> int:
         if set(deps.get("workOrders", {})) != set(ids): fail("dependency-state Work Order identity set mismatch")
         sequence = roadmap.get("sequence", [])
         if set(sequence) != set(ids) or len(sequence) != len(ids): fail("roadmap sequence must contain every Work Order exactly once")
-        if [x for wave in roadmap.get("parallelWaves", []) for x in wave] != sequence: fail("parallel waves must flatten exactly to roadmap sequence")
+        if [x for wave in roadmap.get("parallelWaves", []) for x in wave] != sequence: fail("parallel waves must flatten exactly to sequence")
 
         graph = {k: [d["id"] for d in v["dependencies"]] for k, v in deps["workOrders"].items()}
         for node, ds in graph.items():
@@ -151,6 +151,12 @@ def main() -> int:
                 if not isinstance(merged, dict) or not isinstance(merged.get("pr"), int) or not isinstance(merged.get("mergeCommit"), str):
                     fail(f"complete Work Order {wid} missing mergedAs")
             records[wid] = record
+
+        for wid, text in wo_text.items():
+            if wid not in records:
+                doc_status = parse_status(text)
+                if doc_status != "planned":
+                    fail(f"Work Order {wid} is non-planned but missing program-state record")
 
         active = [(wid, records[wid]) for wid in records if records[wid]["status"] in ACTIVE_STATES]
         branches = {}
