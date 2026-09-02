@@ -1,6 +1,6 @@
 # WORK-008 — Intent, fulfillment policy and demand
 
-Status: in_flight
+Status: complete
 
 Objective: intent, funding source, fulfillment policy, economic slack, demand, demand classes.
 
