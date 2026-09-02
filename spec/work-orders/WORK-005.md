@@ -1,6 +1,6 @@
 # WORK-005 — Value instruments, accounts and ledger
 
-Status: in_flight
+Status: blocked
 
 Objective: asset, value instrument, account, journal, posting, hold, balance derivation, segregation classes.
 
