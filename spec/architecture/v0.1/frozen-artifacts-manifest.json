@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "architectureVersion": "v0.1",
+  "status": "frozen",
+  "sourceOfTruth": "repository",
+  "requiredArtifacts": ["constitution.md","canonical-object-model.md","command-event-model.md","ownership-lifecycle.md","ledger-posting-model.md","interoperability.md","simulation.md","extensions.md","security-risk.md","governance.md","implementation-principles.md","architecture-lock.md"],
+  "changePolicy": "ACR + new immutable architecture version",
+  "sha256": {
+    "constitution.md": "7685f30bd99dc5c4e05039667a274c4818c8fd72fd8315a4ffda1f2635cb617c",
+    "canonical-object-model.md": "f5b5ba9ff6836ff30129426465fd3e749602f9100ce58e9be046744a83568bae",
+    "command-event-model.md": "63712a06ed82c26a06e342f8f16d5ae3cc606119bc6809f0630a386b6d56dac1",
+    "ownership-lifecycle.md": "e534319b2daf187a2713cb0508d7a465f78785439aeb852706be07a862e7e7ad",
+    "ledger-posting-model.md": "e6c2e6195917cd4f82fb0629ce64912a195396fadef38b9d41423c57170263a2",
+    "interoperability.md": "945e02f98e059952b89904906a6ef56ce598f3c44892e665c6dba11203dcc28d",
+    "simulation.md": "d05884c42cb66b1912419d224dc1f5e3f260f5ea177e9e744b8ee8728975febd",
+    "extensions.md": "d5a46af9d955c30635184c936bd7b064218a92f4fb535b0add1652d4dda187d0",
+    "security-risk.md": "090c276fb9c756ac2521f771399e6a68a23aebc8c3f8ffc65aed9a98a1b16a35",
+    "governance.md": "e59bd1367aa3970a3ad49acbe4442438e7c45626e907d625259ed61fb4f26490",
+    "implementation-principles.md": "13ec9f25c928b1cf69fde21fc0469f94a6b2c08ba673a3d4f07082e9a29da33a",
+    "architecture-lock.md": "35dfcec2d3c5ff408e1533f9d285b1341bb08f9e1372340d9ae45b42db69afec"
+  }
+}

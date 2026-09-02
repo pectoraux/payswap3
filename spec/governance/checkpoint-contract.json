@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "checkpointClasses": {
+    "readiness": "validate dependencies, architecture version, scope, authority preservation and assurance",
+    "work_order": "validate Work Order completeness, change surfaces, proofs, dogfooding and migrations",
+    "pr_conformance": "evaluate exact implementation revision against architecture and forbidden shortcuts",
+    "verification_entry": "require exact revision-bound verification and required evidence",
+    "fitness": "measure quality attributes and architecture fitness where declared",
+    "release": "require release strategy, operational evidence, rollback or containment for applicable risk"
+  },
+  "commonRules": ["revision-bound where implementation content is evaluated","unknown detector/checkpoint semantics are inconclusive","inconclusive blocking assertions fail closed","tenant/data boundary mismatches reject before content access","evidence is persisted through its owning authority","checkpoint orchestration never becomes a domain mutation authority"],
+  "proofClasses": ["static","dynamic","discrimination","transformation-completeness","quality-attribute"]
+}

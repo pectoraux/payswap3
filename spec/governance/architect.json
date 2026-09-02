@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "role": "architect",
+  "cardinality": 1,
+  "authority": ["interpret_frozen_architecture","issue_or_activate_work_orders","approve_architecture_change_requests","perform_pr_review","merge_pr","approve_high_assurance_completion","reconcile_post_merge_state","activate_integration_gates","declare_dogfooding_completion"],
+  "prohibitions": ["rewrite_historical_evidence","silently_change_frozen_architecture","use_derived_state_as_authority","merge_without_required_evidence"],
+  "mergeAuthority": "sole",
+  "reviewAuthority": "sole_consequential_code_review",
+  "workerReviewDelegation": false
+}

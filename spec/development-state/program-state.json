@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "programStatus": "bootstrap_ready",
+  "governingArchitecture": "v0.1",
+  "currentMain": null,
+  "workOrders": [],
+  "activeHandoffs": [],
+  "decisions": [],
+  "note": "Initial PaySwap repository bootstrap. No implementation Work Order is activated. Architect must validate the repository and activate an eligible Work Order before worker execution.",
+  "sourceOfTruth": "repository",
+  "repository": "pectoraux/payswap3",
+  "architectBootstrap": "agents/architect-prompt.md",
+  "workerContextSchema": "agents/schemas/execution-context.schema.json",
+  "bootstrapMode": "clean-bootstrap"
+}

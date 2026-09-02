@@ -1,0 +1,7 @@
+{
+  "schemaVersion":1,
+  "protocolVersion":"v0.1",
+  "status":"frozen",
+  "registry":{"objectTypes":["payswap/intent/v1","payswap/fulfillment-plan/v1","payswap/execution-plan/v1","payswap/obligation/v1","payswap/settlement/v1","payswap/simulation/v1","payswap/extension-manifest/v1","payswap/finality/v1"],"eventNamespaces":["intent","market","reservation","execution","clearing","settlement","risk","extension","simulation","governance"],"authorityClasses":["A0","A1","A2","A3","A4","A5","A6","A7","R0","R1","R2","R3","R4","R5"]},
+  "rule":"Workers must search this registry before introducing protocol-visible names. Registry changes require an ACR or an explicitly governed registry Work Order."
+}

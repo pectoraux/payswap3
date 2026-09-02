@@ -1,0 +1,15 @@
+name: PaySwap Governance
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate architecture
+        run: python3 scripts/validate_architecture.py
+      - name: Validate governance
+        run: python3 scripts/validate_governance.py

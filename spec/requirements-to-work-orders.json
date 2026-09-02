@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "architectureVersion": "v0.1",
+  "mapping": {
+    "CORE-001": ["WORK-002","WORK-003","WORK-019"],"CORE-002": ["WORK-002"],"CORE-003": ["WORK-003"],"VAL-001": ["WORK-005","WORK-015","WORK-016"],"VAL-002": ["WORK-006"],"VAL-003": ["WORK-005","WORK-016"],"TRUST-001": ["WORK-004"],"TRUST-002": ["WORK-004"],"INT-001": ["WORK-007"],"INT-002": ["WORK-007","WORK-014","WORK-030"],"ECON-001": ["WORK-013"],"ECON-002": ["WORK-006","WORK-013"],"ECON-003": ["WORK-010"],"ECON-004": ["WORK-011","WORK-015"],"EXEC-001": ["WORK-012","WORK-014"],"EXEC-002": ["WORK-014","WORK-016"],"SETT-001": ["WORK-015","WORK-016"],"SAFE-001": ["WORK-017"],"SAFE-002": ["WORK-011","WORK-017","WORK-024"],"SAFE-003": ["WORK-022"],"EXT-001": ["WORK-020"],"EXT-002": ["WORK-020"],"EXT-003": ["WORK-020"],"SIM-001": ["WORK-019","WORK-028"],"SIM-002": ["WORK-019"],"SIM-003": ["WORK-019"],"GOV-001": ["WORK-001"],"GOV-002": ["WORK-001"],"GOV-003": ["WORK-001"],"GOV-004": ["WORK-001"],"GOV-005": ["WORK-001"],"OPS-001": ["WORK-024"],"OPS-002": ["WORK-023","WORK-024"]
+  },
+  "rule": "Every requirement is implemented by one or more bounded Work Orders; integration gates may additionally prove cross-work-order properties."
+}

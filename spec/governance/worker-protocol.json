@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "unit": "one-work-item-per-branch-pr",
+  "provider": "zai",
+  "requiredContext": ["repositoryRevision","architectureVersion","workOrder","dependencies","ownedSurfaces","forbiddenSurfaces","assuranceProfile","checkpointContract","requiredProofs","dogfoodingContract"],
+  "workerMay": ["inspect_repository","implement_work_order","add_tests","run_verification","run_dogfooding","persist_evidence_on_owned_surfaces","open_or_update_pr"],
+  "workerMayNot": ["merge_own_pr","approve_own_pr","activate_work_order","modify_another_work_item_scope","modify_frozen_architecture_without_acr","invent_second_authority","lower_assurance","rewrite_historical_evidence","treat_chat_as_source_of_truth","silently_fix_unrelated_findings"],
+  "completionReport": ["implementationRevision","baseRevision","changedSurfaces","checksRun","proofResults","dogfoodingResult","knownLimitations","scopeConfirmation","prNumber"],
+  "parallelEligibility": "all hard dependencies complete AND no unresolved protected-surface conflict AND current-base rule satisfied",
+  "mergeAuthority": "architect"
+}

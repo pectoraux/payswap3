@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "governingArchitecture": "v0.1",
+  "status": "frozen-plan",
+  "sequence": ["WORK-001","WORK-002","WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009","WORK-010","WORK-011","WORK-012","WORK-017","WORK-018","WORK-019","WORK-026","WORK-013","WORK-014","WORK-020","WORK-021","WORK-022","WORK-015","WORK-016","WORK-023","WORK-025","WORK-027","WORK-024","WORK-028","WORK-030","WORK-029","WORK-031"],
+  "parallelWaves": [["WORK-001"],["WORK-002"],["WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009"],["WORK-010","WORK-011","WORK-012","WORK-017","WORK-018","WORK-019","WORK-026"],["WORK-013","WORK-014","WORK-020","WORK-021","WORK-022"],["WORK-015"],["WORK-016"],["WORK-023","WORK-025","WORK-027"],["WORK-024","WORK-028","WORK-030"],["WORK-029","WORK-031"]],
+  "rule": "Planning waves are derived topological layers, not authorization. Eligibility is derived from Work Order status, hard dependencies, protected surfaces, current main and governing architecture. Architect activation is required. Parallel siblings never consume unmerged sibling implementation."
+}

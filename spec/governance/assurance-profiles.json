@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "LIGHT":{"intent":"low-risk isolated documentation/tooling changes","proofs":["static"],"checkpoints":["work_order","pr_conformance"]},
+    "STANDARD":{"intent":"ordinary bounded domain implementation","proofs":["static","dynamic"],"checkpoints":["readiness","work_order","pr_conformance"]},
+    "HIGH_ASSURANCE":{"intent":"public contract, concurrency, external-side-effect, migration, or high-risk domain changes","proofs":["static","dynamic","discrimination"],"checkpoints":["readiness","work_order","pr_conformance","verification_entry"]},
+    "CRITICAL":{"intent":"money movement, authority, ledger, finality, security, federation, or materially irreversible changes","proofs":["static","dynamic","discrimination","transformation-completeness"],"checkpoints":["readiness","work_order","pr_conformance","verification_entry","fitness","architect_review"]}
+  },
+  "selection":"deterministic highest-required-risk classification; unknown classification fails closed to CRITICAL",
+  "invariant":"assurance can add depth but may never weaken architecture, authority, or security rules"
+}

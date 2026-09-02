@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "governingArchitecture": "v0.1",
+  "sourceOfTruth": "repository",
+  "architectCardinality": 1,
+  "mergeAuthority": "architect",
+  "workerProvider": "zai",
+  "parallelPolicy": {"sameStableBase":true,"noRebaseSiblings":true,"disjointProtectedSurfaces":true,"noUnmergedSiblingImplementationDependencies":true,"integrationGatesConsumeMergedWork":true},
+  "completionPolicy": {"requiresVerification":true,"requiresDogfoodingOrConformance":true,"requiresArchitectMerge":true,"requiresPostMergeFinalization":true},
+  "failClosed": ["unknown_work_order","unknown_dependency_type","dependency_cycle","protected_surface_conflict","missing_base_revision","stale_base_revision","missing_required_proof","unknown_assurance_class","inconsistent_program_state","missing_architecture_lock"],
+  "authoritativeArtifacts": {"architecture":"spec/architecture/v0.1/","programState":"spec/development-state/program-state.json","workOrders":"spec/work-orders/","protocolRegistry":"spec/registry/protocol-registry.json"},
+  "derivedArtifacts":["spec/development-state/dependency-state.json","spec/development-state/frontier-state.json","spec/development-state/checkpoint-state.json"],
+  "workerContract":"agents/schemas/execution-context.schema.json",
+  "driftPolicy":"spec/governance/drift-control.md"
+}

@@ -60,12 +60,7 @@ A non-zero result means the repository is not a valid governed implementation st
 
 ## Target repository
 
-The intended remote is:
-
-`https://github.com/pectoraux/payswap3.git`
-
 The canonical target repository is `pectoraux/payswap3`. The repository is designed to be self-describing so a fresh Architect can take over without chat history.
-
 
 ## Architect and worker bootstrap
 

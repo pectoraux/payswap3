@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "repository",
+    "mainRevision",
+    "workOrder",
+    "architectureVersion",
+    "dependencies",
+    "ownedSurfaces",
+    "forbiddenSurfaces",
+    "assuranceProfile",
+    "requiredProofs",
+    "dogfooding",
+    "checkpointContract",
+    "protocolRegistry",
+    "sourceOfTruth",
+    "stopConditions"
+  ],
+  "properties": {
+    "repository": {"const": "pectoraux/payswap3"},
+    "mainRevision": {"type": "string", "minLength": 7},
+    "workOrder": {"pattern": "^WORK-\\d{3}$"},
+    "architectureVersion": {"const": "v0.1"},
+    "dependencies": {"type": "array"},
+    "ownedSurfaces": {"type": "array", "minItems": 1},
+    "forbiddenSurfaces": {"type": "array"},
+    "assuranceProfile": {"enum": ["LIGHT", "STANDARD", "HIGH_ASSURANCE", "CRITICAL"]},
+    "requiredProofs": {"type": "array", "minItems": 1},
+    "dogfooding": {"type": "object"},
+    "checkpointContract": {"type": "object"},
+    "protocolRegistry": {"type": "string"},
+    "sourceOfTruth": {"const": "repository"},
+    "stopConditions": {"type": "array", "minItems": 1},
+    "hardDependencies": {"type": "array"},
+    "workerRunId": {"type": "string"}
+  }
+}
