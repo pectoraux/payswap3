@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Any, Mapping
 
 from .envelope import CoreValidationError, _normalize_pairs, _require_text
+from .serialization import check_immutable_value
 
 
 class RelationshipType(StrEnum):
@@ -36,8 +37,9 @@ class Relationship:
         _require_text("object_id", self.object_id)
         if not isinstance(self.attributes, tuple):
             raise CoreValidationError("attributes must be a tuple")
-        for key, _ in self.attributes:
+        for key, value in self.attributes:
             _require_text("relationship attribute key", key)
+            check_immutable_value("relationship attribute value", value)
 
     @classmethod
     def build(
