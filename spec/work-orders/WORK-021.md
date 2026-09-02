@@ -1,6 +1,6 @@
 # WORK-021 — Models, agents and decision mediation
 
-Status: planned
+Status: in_flight
 
 Objective: model registry, model output, agent context, bounded mandates, simulation-before-production mediation.
 
