@@ -1,6 +1,6 @@
 # WORK-026 — Kernel/value integration gate
 
-Status: planned
+Status: in_flight
 
 Objective: prove command/event + accounting + money arithmetic preserve value invariants together.
 

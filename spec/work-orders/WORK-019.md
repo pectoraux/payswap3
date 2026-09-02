@@ -1,6 +1,6 @@
 # WORK-019 — Simulation, replay, forecast and shadow
 
-Status: planned
+Status: in_flight
 
 Objective: one environment runtime abstraction shared by simulation, replay, forecast, counterfactual, shadow and production-compatible execution; snapshots, checkpoints, deterministic replay, world adapters and forecast/counterfactual state branching.
 
