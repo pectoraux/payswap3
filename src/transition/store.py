@@ -46,6 +46,16 @@ class MemoryStateStore:
         return self._objects.get(object_id)
 
     def commit(self, resulting: tuple[ObjectEnvelope, ...]) -> None:
+        """Atomically publish a batch of resulting envelopes.
+
+        The entire batch — instance, integrity, duplicate, version-chain,
+        identity and creation constraints — is validated against the
+        pre-commit snapshot before any mutation. A rejected batch leaves
+        the store byte-identical to its pre-commit state (all-or-nothing);
+        partial commits are impossible. Batch entries carry distinct
+        object_id values (enforced below), so validation never observes
+        another entry's would-be mutation.
+        """
         if not isinstance(resulting, tuple) or not resulting:
             raise CoreValidationError("commit requires a non-empty tuple of resulting envelopes")
         for envelope in resulting:
@@ -78,6 +88,7 @@ class MemoryStateStore:
                         raise CoreValidationError(
                             f"identity field {field} of object {envelope.object_id} cannot change"
                         )
+        for envelope in resulting:
             self._objects[envelope.object_id] = envelope
 
     def snapshot(self) -> tuple[ObjectEnvelope, ...]:
