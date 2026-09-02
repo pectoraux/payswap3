@@ -1,6 +1,6 @@
 # WORK-010 — Market mechanisms, quotes and allocation
 
-Status: planned
+Status: in_flight
 
 Objective: market interface, RFQ default, firm quotes, pluggable auction mechanisms, allocation rules, anti-gaming hooks.
 
