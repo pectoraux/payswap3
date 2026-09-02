@@ -1,6 +1,6 @@
 # WORK-007 — Endpoint resolution and interoperability
 
-Status: in_flight
+Status: complete
 
 Objective: endpoint, resolution, canonical payment messages, adapter contracts, status mapping.
 
