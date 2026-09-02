@@ -1,11 +1,11 @@
 # WORK-003 — Command/event transition kernel
 
-Status: in_flight
+Status: blocked
 
 Objective: deterministic command validation, state transitions, event envelopes, idempotency, version conflicts, invariant hooks.
 
 Assurance: HIGH_ASSURANCE
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/transition/`.
 
