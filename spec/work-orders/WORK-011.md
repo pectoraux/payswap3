@@ -1,6 +1,6 @@
 # WORK-011 — Liquidity, credit and exposure
 
-Status: planned
+Status: in_flight
 
 Objective: liquidity offers, credit offers, exposure limits, collateral references, concentration controls.
 
