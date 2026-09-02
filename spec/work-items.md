@@ -4,15 +4,17 @@ This catalog is a navigation projection over the authoritative Work Orders in `s
 
 | Work Order | Objective | Assurance | Dependencies | Status |
 |---|---|---|---|---|
-| `WORK-001` | Governance/bootstrap validator | `STANDARD` | None | planned |
-| `WORK-002` | Canonical protocol primitives | `STANDARD` | WORK-001 (implementation) | planned |
-| `WORK-003` | Command/event transition kernel | `HIGH_ASSURANCE` | WORK-002 (implementation) | planned |
-| `WORK-004` | Identity, authentication, authority and keys | `CRITICAL` | WORK-002 (implementation) | planned |
-| `WORK-005` | Value instruments, accounts and ledger | `CRITICAL` | WORK-002 (implementation) | planned |
-| `WORK-006` | Monetary arithmetic and FX | `HIGH_ASSURANCE` | WORK-002 (implementation) | planned |
-| `WORK-007` | Endpoint resolution and interoperability | `HIGH_ASSURANCE` | WORK-002 (implementation) | planned |
-| `WORK-008` | Intent, fulfillment policy and demand | `STANDARD` | WORK-002 (implementation) | planned |
-| `WORK-009` | Capability, commitments and operating windows | `HIGH_ASSURANCE` | WORK-002 (implementation) | planned |
+| `WORK-001` | Governance/bootstrap validator | `STANDARD` | None | complete |
+| `WORK-002` | Canonical protocol primitives | `STANDARD` | WORK-001 (implementation) | complete |
+| `WORK-033` | Governance revision-binding remediation | `HIGH_ASSURANCE` | WORK-001 (implementation) | planned |
+| `WORK-032` | Canonical core integrity remediation | `HIGH_ASSURANCE` | WORK-002 (implementation) | planned |
+| `WORK-003` | Command/event transition kernel | `HIGH_ASSURANCE` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-004` | Identity, authentication, authority and keys | `CRITICAL` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-005` | Value instruments, accounts and ledger | `CRITICAL` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-006` | Monetary arithmetic and FX | `HIGH_ASSURANCE` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-007` | Endpoint resolution and interoperability | `HIGH_ASSURANCE` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-008` | Intent, fulfillment policy and demand | `STANDARD` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
+| `WORK-009` | Capability, commitments and operating windows | `HIGH_ASSURANCE` | WORK-002 (implementation), WORK-032 (implementation) | blocked |
 | `WORK-010` | Market mechanisms, quotes and allocation | `HIGH_ASSURANCE` | WORK-006 (implementation), WORK-008 (implementation), WORK-009 (implementation) | planned |
 | `WORK-011` | Liquidity, credit and exposure | `CRITICAL` | WORK-005 (implementation), WORK-006 (implementation), WORK-009 (implementation) | planned |
 | `WORK-012` | Reservation and concurrency | `CRITICAL` | WORK-003 (implementation), WORK-005 (implementation), WORK-009 (implementation) | planned |
@@ -39,15 +41,16 @@ This catalog is a navigation projection over the authoritative Work Orders in `s
 ## Derived implementation layers
 
 - Wave 0: `WORK-001`
-- Wave 1: `WORK-002`
-- Wave 2: `WORK-003` || `WORK-004` || `WORK-005` || `WORK-006` || `WORK-007` || `WORK-008` || `WORK-009`
-- Wave 3: `WORK-010` || `WORK-011` || `WORK-012` || `WORK-017` || `WORK-018` || `WORK-019` || `WORK-026`
-- Wave 4: `WORK-013` || `WORK-014` || `WORK-020` || `WORK-021` || `WORK-022`
-- Wave 5: `WORK-015`
-- Wave 6: `WORK-016`
-- Wave 7: `WORK-023` || `WORK-025` || `WORK-027`
-- Wave 8: `WORK-024` || `WORK-028` || `WORK-030`
-- Wave 9: `WORK-029` || `WORK-031`
+- Wave 1: `WORK-002` || `WORK-033`
+- Wave 2: `WORK-032`
+- Wave 3: `WORK-003` || `WORK-004` || `WORK-005` || `WORK-006` || `WORK-007` || `WORK-008` || `WORK-009`
+- Wave 4: `WORK-010` || `WORK-011` || `WORK-012` || `WORK-017` || `WORK-018` || `WORK-019` || `WORK-026`
+- Wave 5: `WORK-013` || `WORK-014` || `WORK-020` || `WORK-021` || `WORK-022`
+- Wave 6: `WORK-015`
+- Wave 7: `WORK-016`
+- Wave 8: `WORK-023` || `WORK-025` || `WORK-027`
+- Wave 9: `WORK-024` || `WORK-028` || `WORK-030`
+- Wave 10: `WORK-029` || `WORK-031`
 
 ## Authority
 
