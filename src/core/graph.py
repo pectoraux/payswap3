@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 from typing import Any, Iterable, Mapping
 
 from .envelope import CoreValidationError, ObjectEnvelope
 from .relationships import Relationship
-from .serialization import canonical_json
+from .serialization import canonical_json, loads_canonical
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,10 +57,7 @@ class ObjectGraph:
 
     @classmethod
     def from_json(cls, value: str) -> "ObjectGraph":
-        try:
-            decoded = json.loads(value)
-        except json.JSONDecodeError as exc:
-            raise CoreValidationError("invalid canonical object graph JSON") from exc
+        decoded = loads_canonical(value)
         if not isinstance(decoded, dict):
             raise CoreValidationError("object graph JSON must decode to an object")
         return cls.from_dict(decoded)
