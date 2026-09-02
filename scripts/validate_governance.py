@@ -152,6 +152,12 @@ def main() -> int:
                     fail(f"complete Work Order {wid} missing mergedAs")
             records[wid] = record
 
+        for wid, text in wo_text.items():
+            if wid not in records:
+                doc_status = parse_status(text)
+                if doc_status != "planned":
+                    fail(f"Work Order {wid} is non-planned but missing program-state record")
+
         active = [(wid, records[wid]) for wid in records if records[wid]["status"] in ACTIVE_STATES]
         branches = {}
         for wid, record in active:
@@ -166,12 +172,6 @@ def main() -> int:
         for i, (a, _) in enumerate(active):
             for b, _ in active[i + 1:]:
                 if owned[a] & owned[b]: fail(f"active protected-surface conflict: {a} vs {b}: {owned[a] & owned[b]}")
-
-        for wid, text in wo_text.items():
-            if wid not in records:
-                doc_status = parse_status(text)
-                if doc_status != "planned":
-                    fail(f"Work Order {wid} is non-planned but missing program-state record")
 
         levels = {}
         remaining = set(graph)
