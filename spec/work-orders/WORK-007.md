@@ -1,11 +1,11 @@
 # WORK-007 — Endpoint resolution and interoperability
 
-Status: in_flight
+Status: blocked
 
 Objective: endpoint, resolution, canonical payment messages, adapter contracts, status mapping.
 
 Assurance: HIGH_ASSURANCE
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/interoperability/`.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: resolve a test endpoint through canonical and domestic-shaped adapters.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
