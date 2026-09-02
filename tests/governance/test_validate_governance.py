@@ -68,6 +68,27 @@ class GovernanceValidatorTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("missing baseRevision", result.stderr)
 
+    def test_program_and_document_status_must_match(self) -> None:
+        def mutate(root: Path) -> None:
+            state = root / "spec" / "development-state" / "program-state.json"
+            data = json.loads(state.read_text(encoding="utf-8"))
+            data["workOrders"][0]["status"] = "ready_for_merge"
+            state.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        result = self.run_validator(mutate)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("status drift", result.stderr)
+
+    def test_unknown_work_order_status_is_rejected(self) -> None:
+        def mutate(root: Path) -> None:
+            path = root / "spec" / "work-orders" / "WORK-001.md"
+            text = path.read_text(encoding="utf-8")
+            path.write_text(text.replace("Status: in_flight", "Status: nonsense", 1), encoding="utf-8")
+
+        result = self.run_validator(mutate)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid Work Order status", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
