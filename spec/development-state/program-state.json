@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "programStatus": "implementation_in_flight",
   "governingArchitecture": "v0.1",
-  "currentMain": "70221788b8561f03bb929f05e8be6300ba668ab5",
+  "currentMain": "a4ec1da82184a3cbc69cbd451f8e6c032066e570",
   "workOrders": [
     {
       "id": "WORK-001",
       "status": "in_flight",
       "baseRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
-      "branch": "work-001/governance-validator",
+      "branch": "work-001/governance-validator-reviewed",
       "assurance": "STANDARD",
       "requiredProofs": ["static", "dynamic", "discrimination"],
       "nextAction": "Implement and verify the governance/bootstrap validator and its discrimination suite."
@@ -19,15 +19,21 @@
       "id": "WORK-001",
       "status": "in_flight",
       "baseRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
-      "branch": "work-001/governance-validator",
-      "lastVerifiedRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
+      "branch": "work-001/governance-validator-reviewed",
+      "lastVerifiedRevision": "a4ec1da82184a3cbc69cbd451f8e6c032066e570",
       "evidence": ["architecture validator PASS", "governance validator PASS"],
-      "limitations": ["W001 discrimination fixture suite is not yet on main"],
-      "nextAction": "Add and run W001 governance validator discrimination tests; open PR for Architect review."
+      "limitations": ["W001 discrimination suite is implemented only on worker branch pending Architect review"],
+      "nextAction": "Verify worker branch evidence, open PR, review exact head, and merge only after all proof classes pass."
     }
   ],
-  "decisions": [],
-  "note": "WORK-001 activated by Architect from exact main revision 70221788b8561f03bb929f05e8be6300ba668ab5. All subsequent worker work must remain within W001 owned surfaces.",
+  "decisions": [
+    {
+      "type": "execution-reconciliation",
+      "date": "2026-09-02",
+      "note": "Rebound WORK-001 to a fresh worker ref after a connector branch-write anomaly; no history rewrite or force-push was used."
+    }
+  ],
+  "note": "WORK-001 remains the sole active Work Order. Architect activation originated from 70221788b8561f03bb929f05e8be6300ba668ab5; current main is reconciled at a4ec1da82184a3cbc69cbd451f8e6c032066e570.",
   "sourceOfTruth": "repository",
   "repository": "pectoraux/payswap3",
   "architectBootstrap": "agents/architect-prompt.md",
