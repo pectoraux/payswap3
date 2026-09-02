@@ -1,11 +1,11 @@
 # WORK-008 — Intent, fulfillment policy and demand
 
-Status: in_flight
+Status: blocked
 
 Objective: intent, funding source, fulfillment policy, economic slack, demand, demand classes.
 
 Assurance: STANDARD
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/intent/`.
 
