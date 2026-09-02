@@ -1,6 +1,6 @@
 # WORK-006 — Monetary arithmetic and FX
 
-Status: planned
+Status: in_flight
 
 Objective: fixed-point arithmetic, rounding, quantization, FX rate objects, residual allocation.
 

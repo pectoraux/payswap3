@@ -1,6 +1,6 @@
 # WORK-009 — Capability, commitments and operating windows
 
-Status: planned
+Status: in_flight
 
 Objective: capability, capability commitments, operating windows, verification metadata.
 

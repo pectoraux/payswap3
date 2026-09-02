@@ -1,6 +1,6 @@
 # WORK-002 — Canonical protocol primitives
 
-Status: in_flight
+Status: complete
 
 Objective: Implement the shared immutable object identities, envelopes, identifiers, versions, provenance, relationships and common schema utilities.
 

@@ -1,6 +1,6 @@
 # WORK-008 — Intent, fulfillment policy and demand
 
-Status: planned
+Status: in_flight
 
 Objective: intent, funding source, fulfillment policy, economic slack, demand, demand classes.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, transformation-completeness.
-
 Dogfooding/conformance experiment: create real product intent, derive demand, preserve constraints through serialization.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.

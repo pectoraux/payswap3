@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "programStatus": "implementation_in_flight",
   "governingArchitecture": "v0.1",
-  "currentMain": "f8048bb2111771bca4e96eb2f709dad75dc1bc77",
+  "currentMain": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
   "workOrders": [
     {
       "id": "WORK-001",
@@ -17,32 +17,96 @@
     },
     {
       "id": "WORK-002",
-      "status": "in_flight",
+      "status": "complete",
       "baseRevision": "f8048bb2111771bca4e96eb2f709dad75dc1bc77",
       "branch": "work-002/canonical-primitives",
       "assurance": "STANDARD",
       "requiredProofs": ["static", "dynamic", "transformation-completeness"],
-      "nextAction": "Implement canonical primitives strictly from the frozen object model and verify lossless round-trip behavior."
+      "mergedAs": {"pr": 3, "mergeCommit": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98"},
+      "evidence": ["architecture validator PASS", "core unit suite 6/6 PASS", "canonical JSON and representative intent graph round-trip PASS", "Python compileall PASS"],
+      "nextAction": "Complete"
+    },
+    {
+      "id": "WORK-003",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-003/transition-kernel",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement the deterministic command/event transition kernel."
+    },
+    {
+      "id": "WORK-004",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-004/trust",
+      "assurance": "CRITICAL",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement identity, authentication, authority and key primitives."
+    },
+    {
+      "id": "WORK-005",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-005/value",
+      "assurance": "CRITICAL",
+      "requiredProofs": ["static", "dynamic", "discrimination", "transformation-completeness"],
+      "nextAction": "Implement value instruments, accounts and ledger primitives."
+    },
+    {
+      "id": "WORK-006",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-006/money",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement fixed-point monetary arithmetic and FX primitives."
+    },
+    {
+      "id": "WORK-007",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-007/interoperability",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement endpoint resolution and canonical interoperability adapter contracts."
+    },
+    {
+      "id": "WORK-008",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-008/intent",
+      "assurance": "STANDARD",
+      "requiredProofs": ["static", "dynamic", "transformation-completeness"],
+      "nextAction": "Implement intent, fulfillment policy, economic slack and demand primitives."
+    },
+    {
+      "id": "WORK-009",
+      "status": "in_flight",
+      "baseRevision": "e03aeb19e56e1f1d976e8fca9d1d3909b7196f98",
+      "branch": "work-009/capability",
+      "assurance": "HIGH_ASSURANCE",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement capabilities, commitments, operating windows and verification metadata."
     }
   ],
   "activeHandoffs": [
-    {
-      "id": "WORK-002",
-      "status": "in_flight",
-      "baseRevision": "f8048bb2111771bca4e96eb2f709dad75dc1bc77",
-      "branch": "work-002/canonical-primitives",
-      "lastVerifiedRevision": "f8048bb2111771bca4e96eb2f709dad75dc1bc77",
-      "evidence": ["WORK-001 complete", "dependency WORK-001 merged and reconciled"],
-      "limitations": ["runtime implementation not yet present"],
-      "nextAction": "Implement src/core only; verify static, dynamic and transformation-completeness evidence; open PR."
-    }
+    {"id":"WORK-003","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-003/transition-kernel","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/transition and verify required proofs."},
+    {"id":"WORK-004","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-004/trust","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/trust and verify required proofs."},
+    {"id":"WORK-005","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-005/value","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/value and verify required proofs."},
+    {"id":"WORK-006","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-006/money","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/money and verify required proofs."},
+    {"id":"WORK-007","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-007/interoperability","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/interoperability and verify required proofs."},
+    {"id":"WORK-008","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-008/intent","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/intent and verify required proofs."},
+    {"id":"WORK-009","status":"in_flight","baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","branch":"work-009/capability","lastVerifiedRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","evidence":["WORK-002 complete"],"limitations":["runtime implementation not yet present"],"nextAction":"Implement src/capability and verify required proofs."}
   ],
   "decisions": [
     {"type":"execution-reconciliation","date":"2026-09-02","note":"Rebound WORK-001 to a fresh worker ref after a connector branch-write anomaly; no history rewrite or force-push was used."},
     {"type":"work-order-completion","date":"2026-09-02","workOrder":"WORK-001","pr":2,"mergeCommit":"5ca7050be42c48c1a6f44a7987fb0291597c1b20","note":"Architect reviewed exact PR head, merged W001, and reconciled completion state."},
-    {"type":"work-order-activation","date":"2026-09-02","workOrder":"WORK-002","baseRevision":"f8048bb2111771bca4e96eb2f709dad75dc1bc77","note":"Architect activated W002 because WORK-001 is complete and W002 has no other dependencies or protected-surface conflicts."}
+    {"type":"work-order-activation","date":"2026-09-02","workOrder":"WORK-002","baseRevision":"f8048bb2111771bca4e96eb2f709dad75dc1bc77","note":"Architect activated W002 because WORK-001 is complete."},
+    {"type":"work-order-completion","date":"2026-09-02","workOrder":"WORK-002","pr":3,"mergeCommit":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","note":"Architect reviewed exact PR head, merged W002, and reconciled completion state."},
+    {"type":"parallel-antichain-activation","date":"2026-09-02","workOrders":["WORK-003","WORK-004","WORK-005","WORK-006","WORK-007","WORK-008","WORK-009"],"baseRevision":"e03aeb19e56e1f1d976e8fca9d1d3909b7196f98","note":"All seven Work Orders have complete W002 implementation dependency, distinct owned surfaces, and no unmerged sibling implementation dependency."}
   ],
-  "note": "WORK-002 is the sole active Work Order. Its only implementation dependency, WORK-001, is complete on main.",
+  "note": "W003-W009 are the active safe parallel antichain after W002. Each starts from the same stable main revision and owns a disjoint authoritative surface.",
   "sourceOfTruth": "repository",
   "repository": "pectoraux/payswap3",
   "architectBootstrap": "agents/architect-prompt.md",
