@@ -1,11 +1,11 @@
 # WORK-005 — Value instruments, accounts and ledger
 
-Status: in_flight
+Status: blocked
 
 Objective: asset, value instrument, account, journal, posting, hold, balance derivation, segregation classes.
 
 Assurance: CRITICAL
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/value/`.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination, transformation-completeness.
-
 Dogfooding/conformance experiment: execute a simulated balanced journal lifecycle with hold/release/reconciliation.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
