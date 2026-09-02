@@ -1,6 +1,6 @@
 # WORK-018 — Evidence, knowledge and uncertainty
 
-Status: in_flight
+Status: complete
 
 Objective: evidence, attestations, observations, epistemic type, uncertainty, provenance and freshness.
 

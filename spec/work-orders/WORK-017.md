@@ -1,6 +1,6 @@
 # WORK-017 — Risk, fraud, compliance and policy engine
 
-Status: in_flight
+Status: complete
 
 Objective: risk assessments, fraud signals/decisions, compliance envelopes, constraint precedence, systemic exposure interface.
 
