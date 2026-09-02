@@ -61,7 +61,8 @@ class GovernanceValidatorTests(unittest.TestCase):
             state.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
             wo = root / "spec" / "work-orders" / "WORK-001.md"
             text = wo.read_text(encoding="utf-8")
-            wo.write_text(text.replace("Status: in_flight", "Status: in_flight", 1), encoding="utf-8")
+            if "Status: in_flight" not in text:
+                raise AssertionError("fixture requires active WORK-001")
 
         result = self.run_validator(mutate)
         self.assertNotEqual(result.returncode, 0)
