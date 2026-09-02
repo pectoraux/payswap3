@@ -1,6 +1,6 @@
 # WORK-014 — External effect adapters and execution
 
-Status: planned
+Status: in_flight
 
 Objective: execution plan/step/attempt, effect requests/results, adapter ports, idempotent submission.
 
@@ -18,7 +18,7 @@ Acceptance criteria:
 - no second authority is introduced;
 - scope is isolated from sibling Work Orders wherever feasible.
 
-Required proofs: static, dynamic, discrimination.
+Required proofs: static, dynamic, discrimination, quality-attribute.
 
 Dogfooding/conformance experiment: execute against a local fake/sandbox rail using the public adapter path, including unknown-result recovery.
 
