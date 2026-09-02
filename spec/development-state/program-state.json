@@ -1,12 +1,33 @@
 {
   "schemaVersion": 1,
-  "programStatus": "bootstrap_ready",
+  "programStatus": "implementation_in_flight",
   "governingArchitecture": "v0.1",
-  "currentMain": null,
-  "workOrders": [],
-  "activeHandoffs": [],
+  "currentMain": "70221788b8561f03bb929f05e8be6300ba668ab5",
+  "workOrders": [
+    {
+      "id": "WORK-001",
+      "status": "in_flight",
+      "baseRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
+      "branch": "work-001/governance-validator",
+      "assurance": "STANDARD",
+      "requiredProofs": ["static", "dynamic", "discrimination"],
+      "nextAction": "Implement and verify the governance/bootstrap validator and its discrimination suite."
+    }
+  ],
+  "activeHandoffs": [
+    {
+      "id": "WORK-001",
+      "status": "in_flight",
+      "baseRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
+      "branch": "work-001/governance-validator",
+      "lastVerifiedRevision": "70221788b8561f03bb929f05e8be6300ba668ab5",
+      "evidence": ["architecture validator PASS", "governance validator PASS"],
+      "limitations": ["W001 discrimination fixture suite is not yet on main"],
+      "nextAction": "Add and run W001 governance validator discrimination tests; open PR for Architect review."
+    }
+  ],
   "decisions": [],
-  "note": "Initial PaySwap repository bootstrap. No implementation Work Order is activated. Architect must validate the repository and activate an eligible Work Order before worker execution.",
+  "note": "WORK-001 activated by Architect from exact main revision 70221788b8561f03bb929f05e8be6300ba668ab5. All subsequent worker work must remain within W001 owned surfaces.",
   "sourceOfTruth": "repository",
   "repository": "pectoraux/payswap3",
   "architectBootstrap": "agents/architect-prompt.md",

@@ -1,6 +1,6 @@
 # WORK-001 — Governance/bootstrap validator
 
-Status: planned
+Status: in_flight
 
 Objective: Make repository governance mechanically self-validating before runtime implementation begins.
 
