@@ -1,6 +1,6 @@
 # WORK-012 — Reservation and concurrency
 
-Status: in_flight
+Status: complete
 
 Objective: versioned resource reservations, conditional commit, release/expiry/default/consume, concurrency contracts.
 
