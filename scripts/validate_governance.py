@@ -50,7 +50,7 @@ def parse_deps(text: str):
     return [] if raw.lower() == "none" else re.findall(r"(WORK-\d{3})\s+\((contract|implementation|integration)\)", raw)
 
 def parse_owned(text: str):
-    m = re.search(r"Owned surfaces:\s*`([^`]+)" , text)
+    m = re.search(r"Owned surfaces:\s*`([^`]+)`", text)
     if not m:
         fail("missing owned-surface declaration")
     return {x.strip() for x in m.group(1).split(",")}
