@@ -1,11 +1,11 @@
 # WORK-006 — Monetary arithmetic and FX
 
-Status: in_flight
+Status: blocked
 
 Objective: fixed-point arithmetic, rounding, quantization, FX rate objects, residual allocation.
 
 Assurance: HIGH_ASSURANCE
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/money/`.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: replay canonical multi-currency calculations and prove byte-identical results.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
