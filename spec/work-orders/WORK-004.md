@@ -1,11 +1,11 @@
 # WORK-004 — Identity, authentication, authority and keys
 
-Status: in_flight
+Status: blocked
 
 Objective: principal, credential, authentication, authorization grants, mandates, keys, threshold approval interfaces.
 
 Assurance: CRITICAL
-Dependencies: WORK-002 (implementation)
+Dependencies: WORK-002 (implementation), WORK-032 (implementation)
 
 Owned surfaces: `src/trust/`.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: authenticate a test principal, delegate bounded authority, revoke it, verify denied action.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
