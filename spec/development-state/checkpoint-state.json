@@ -3,6 +3,6 @@
   "authority": "derived_projection",
   "activeWorkOrder": null,
   "required": [],
-  "satisfied": [],
+  "satisfied": ["WORK-001"],
   "blocked": []
 }
