@@ -1451,6 +1451,249 @@ class LedgerHoldTests(unittest.TestCase):
         self.assertEqual((balance.held, balance.encumbered, balance.available), (0, 0, 12500))
 
 
+class LedgerHoldPostingAtomicityTests(unittest.TestCase):
+    """WORK-005 correction regressions: hold mutations are atomic with their
+    coupled encumbrance postings.
+
+    ``hold_create``, ``hold_increase``, ``hold_release`` and ``hold_expire``
+    each publish an advanced hold projection and post the coupled
+    AVAILABLE<->ENCUMBERED movement. The posting must be fully recorded
+    BEFORE the advanced hold is published: when the coupled posting fails
+    after the hold transition was prepared (missing journal, sealed
+    RECONCILED journal, or a posting-guard failure such as a suspended
+    asset), the authoritative hold projection must remain at its exact
+    prior state, no posting may be added, and the whole-ledger canonical
+    state and digest must be unchanged.
+    """
+
+    def _snapshot(self, ledger: ValueLedger) -> tuple[str, str]:
+        return ledger.state_digest(), canonical_json(ledger.canonical_state())
+
+    def _assert_unchanged(self, ledger: ValueLedger, snapshot: tuple[str, str]) -> None:
+        digest, state = snapshot
+        self.assertEqual(ledger.state_digest(), digest)
+        self.assertEqual(canonical_json(ledger.canonical_state()), state)
+
+    def _hold_projection(self, ledger: ValueLedger, hold_id: str) -> dict:
+        for hold in ledger.canonical_state()["holds"]:
+            if hold["envelope"]["object_id"] == hold_id:
+                return hold
+        self.fail(f"hold {hold_id} is not registered in the ledger projection")
+
+    def _assert_prior_hold(
+        self, ledger: ValueLedger, hold_id: str, amount: int, state: str, version: int
+    ) -> None:
+        hold = self._hold_projection(ledger, hold_id)
+        self.assertEqual(hold["payload"]["amount"]["value"], amount)
+        self.assertEqual(hold["envelope"]["state"], state)
+        self.assertEqual(hold["envelope"]["object_version"], version)
+
+    def _open_second_journal(self, ledger: ValueLedger) -> None:
+        ledger.open_journal(
+            object_id="value/journal/ops-2",
+            custodian_id="principal/custodian-1",
+            description="secondary operations journal",
+            provenance=provenance(),
+        )
+
+    def _seed_hold(self, ledger: ValueLedger) -> None:
+        deposit(ledger)
+        ledger.hold_create(
+            journal_id="value/journal/ops-1", hold_id="value/hold/h1",
+            account_id="value/account/customer-1", amount=Amount(6000, 2, "USD"),
+            provenance=provenance(),
+        )
+
+    def test_failed_hold_create_publishes_no_hold_and_no_posting(self) -> None:
+        ledger = make_ledger()
+        deposit(ledger)
+        self._open_second_journal(ledger)
+
+        # missing journal: the coupled posting fails at the journal lookup,
+        # after the hold transition was fully prepared
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_create(
+                journal_id="value/journal/missing", hold_id="value/hold/h1",
+                account_id="value/account/customer-1", amount=Amount(6000, 2, "USD"),
+                provenance=provenance(),
+            )
+        self.assertIn("unknown journal", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self.assertEqual(ledger.canonical_state()["holds"], [])
+
+        # sealed journal: the coupled posting fails at the ACTIVE-journal guard
+        ledger.reconcile(journal_id="value/journal/ops-1", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_create(
+                journal_id="value/journal/ops-1", hold_id="value/hold/h1",
+                account_id="value/account/customer-1", amount=Amount(6000, 2, "USD"),
+                provenance=provenance(),
+            )
+        self.assertIn("RECONCILED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self.assertEqual(ledger.canonical_state()["holds"], [])
+
+        # suspended asset: the coupled posting fails inside the posting guards
+        ledger.suspend_asset(object_id="value/asset/usd", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_create(
+                journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+                account_id="value/account/customer-1", amount=Amount(6000, 2, "USD"),
+                provenance=provenance(),
+            )
+        self.assertIn("SUSPENDED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self.assertEqual(ledger.canonical_state()["holds"], [])
+        self.assertEqual(ledger.journal_postings("value/journal/ops-2"), ())
+
+        # recovery: the failed attempts left no residual registration, so the
+        # same hold id creates cleanly with exactly one encumbrance posting
+        ledger.activate_asset(object_id="value/asset/usd", provenance=provenance())
+        hold = ledger.hold_create(
+            journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+            account_id="value/account/customer-1", amount=Amount(6000, 2, "USD"),
+            provenance=provenance(),
+        )
+        self.assertEqual(hold.envelope.state, HoldState.ACTIVE.value)
+        postings = ledger.journal_postings("value/journal/ops-2")
+        self.assertEqual([p.payload.posting_class for p in postings], [PostingClass.HOLD])
+        self.assertEqual(postings[0].payload.source_refs, ("value/hold/h1",))
+
+    def test_failed_hold_increase_leaves_the_prior_hold_and_no_posting(self) -> None:
+        ledger = make_ledger()
+        self._seed_hold(ledger)
+        self._open_second_journal(ledger)
+        baseline = len(ledger.journal_postings("value/journal/ops-1"))
+        self.assertEqual(baseline, 2)
+
+        # sealed journal: the increase posting fails after it was prepared
+        ledger.reconcile(journal_id="value/journal/ops-1", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_increase(
+                journal_id="value/journal/ops-1", hold_id="value/hold/h1",
+                delta=Amount(500, 2, "USD"), provenance=provenance(),
+            )
+        self.assertIn("RECONCILED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(len(ledger.journal_postings("value/journal/ops-1")), baseline)
+
+        # suspended asset: posting-guard failure after the increase was prepared
+        ledger.suspend_asset(object_id="value/asset/usd", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_increase(
+                journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+                delta=Amount(500, 2, "USD"), provenance=provenance(),
+            )
+        self.assertIn("SUSPENDED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(ledger.journal_postings("value/journal/ops-2"), ())
+
+        # recovery: the untouched hold increases cleanly on a working journal
+        ledger.activate_asset(object_id="value/asset/usd", provenance=provenance())
+        advanced = ledger.hold_increase(
+            journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+            delta=Amount(500, 2, "USD"), provenance=provenance(),
+        )
+        self.assertEqual(advanced.payload.amount, Amount(6500, 2, "USD"))
+        balance = ledger.derive_balances(account_id="value/account/customer-1")
+        self.assertEqual((balance.held, balance.encumbered, balance.available), (6500, 6500, 6000))
+
+    def test_failed_hold_release_leaves_the_prior_hold_and_no_posting(self) -> None:
+        ledger = make_ledger()
+        self._seed_hold(ledger)
+        self._open_second_journal(ledger)
+        baseline = len(ledger.journal_postings("value/journal/ops-1"))
+        self.assertEqual(baseline, 2)
+
+        # sealed journal: the partial-release posting fails after it was prepared
+        ledger.reconcile(journal_id="value/journal/ops-1", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_release(
+                journal_id="value/journal/ops-1", hold_id="value/hold/h1",
+                amount=Amount(1500, 2, "USD"), provenance=provenance(),
+            )
+        self.assertIn("RECONCILED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(len(ledger.journal_postings("value/journal/ops-1")), baseline)
+
+        # suspended asset: the full-release posting fails inside the guards
+        ledger.suspend_asset(object_id="value/asset/usd", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_release(
+                journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+                provenance=provenance(),
+            )
+        self.assertIn("SUSPENDED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(ledger.journal_postings("value/journal/ops-2"), ())
+
+        # recovery: partial release still works and keeps held == encumbered
+        ledger.activate_asset(object_id="value/asset/usd", provenance=provenance())
+        released = ledger.hold_release(
+            journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+            amount=Amount(1500, 2, "USD"), provenance=provenance(),
+        )
+        self.assertEqual(released.envelope.state, HoldState.ACTIVE.value)
+        self.assertEqual(released.payload.amount, Amount(4500, 2, "USD"))
+        balance = ledger.derive_balances(account_id="value/account/customer-1")
+        self.assertEqual((balance.held, balance.encumbered, balance.available), (4500, 4500, 8000))
+
+    def test_failed_hold_expire_leaves_the_prior_hold_and_no_posting(self) -> None:
+        ledger = make_ledger()
+        self._seed_hold(ledger)
+        self._open_second_journal(ledger)
+        baseline = len(ledger.journal_postings("value/journal/ops-1"))
+        self.assertEqual(baseline, 2)
+
+        # sealed journal: the expiry release posting fails after it was prepared
+        ledger.reconcile(journal_id="value/journal/ops-1", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_expire(
+                journal_id="value/journal/ops-1", hold_id="value/hold/h1",
+                provenance=provenance(),
+            )
+        self.assertIn("RECONCILED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(len(ledger.journal_postings("value/journal/ops-1")), baseline)
+
+        # suspended asset: posting-guard failure after expiry was prepared
+        ledger.suspend_asset(object_id="value/asset/usd", provenance=provenance())
+        snapshot = self._snapshot(ledger)
+        with self.assertRaises(CoreValidationError) as ctx:
+            ledger.hold_expire(
+                journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+                provenance=provenance(),
+            )
+        self.assertIn("SUSPENDED", str(ctx.exception))
+        self._assert_unchanged(ledger, snapshot)
+        self._assert_prior_hold(ledger, "value/hold/h1", 6000, HoldState.ACTIVE.value, 1)
+        self.assertEqual(ledger.journal_postings("value/journal/ops-2"), ())
+
+        # recovery: expiry still works and returns the encumbered value
+        ledger.activate_asset(object_id="value/asset/usd", provenance=provenance())
+        expired = ledger.hold_expire(
+            journal_id="value/journal/ops-2", hold_id="value/hold/h1",
+            provenance=provenance(),
+        )
+        self.assertEqual(expired.envelope.state, HoldState.EXPIRED.value)
+        self.assertEqual(expired.payload.amount, Amount(0, 2, "USD"))
+        balance = ledger.derive_balances(account_id="value/account/customer-1")
+        self.assertEqual((balance.held, balance.encumbered, balance.available), (0, 0, 12500))
+
+
 class LedgerInstrumentAndFundingTests(unittest.TestCase):
     def test_instrument_lifecycle_via_ledger(self) -> None:
         ledger = make_ledger()

@@ -14,6 +14,10 @@ the frozen ledger/posting model's operational guards fail-closed:
   (allowed even on a RESTRICTED account: releasing trapped value is the
   sanctioned exception path), decrease re-aligns the record with a consumed
   encumbered view, and reservation safety always requires AVAILABLE cover;
+  every coupled hold mutation (create/increase/release/expire) is atomic
+  with its posting: the encumbrance/compensation posting is fully recorded
+  before the advanced hold is published into ``self._holds``, so a failed
+  posting leaves the hold projection at its exact prior state;
 * reconciliation derives per-asset trial totals, normal-side asset sheets
   and hold evidence, refuses to certify contradictory evidence, and seals
   the journal (postings then fail closed until a new journal version).
@@ -607,7 +611,10 @@ class ValueLedger:
             domain_id=self._domain_id,
             provenance=provenance,
         )
-        self._holds[hold_id] = hold
+        # Atomic hold coupling: the encumbrance posting is fully recorded
+        # (journal eligibility + posting guards) BEFORE the hold is published
+        # into the authoritative projection, so a failed posting can never
+        # leave a hold created without its AVAILABLE->ENCUMBERED movement.
         self._record_posting(
             journal_id=journal_id,
             posting_class=PostingClass.HOLD,
@@ -616,6 +623,7 @@ class ValueLedger:
             description=f"hold encumbrance for {hold_id}",
             source_refs=(hold_id,),
         )
+        self._holds[hold_id] = hold
         return hold
 
     def hold_increase(
@@ -632,7 +640,8 @@ class ValueLedger:
             raise CoreValidationError("hold increase delta must be a positive Amount")
         self._require_reservation_cover(hold.payload.account_id, delta)
         advanced = hold.increase(delta=delta, provenance=provenance)
-        self._holds[hold_id] = advanced
+        # Atomic hold coupling: record the encumbrance posting before
+        # publishing the advanced hold (same ordering contract as hold_create).
         self._record_posting(
             journal_id=journal_id,
             posting_class=PostingClass.HOLD,
@@ -641,6 +650,7 @@ class ValueLedger:
             description=f"hold increase for {hold_id}",
             source_refs=(hold_id,),
         )
+        self._holds[hold_id] = advanced
         return advanced
 
     def hold_release(
@@ -667,7 +677,8 @@ class ValueLedger:
         # encumbered view must still cover the release exactly.
         self._require_encumbered_cover(account_id, release_amount, "release")
         advanced = hold.release(amount=amount, provenance=provenance)
-        self._holds[hold_id] = advanced
+        # Atomic hold coupling: record the compensation posting before
+        # publishing the advanced hold (same ordering contract as hold_create).
         self._record_posting(
             journal_id=journal_id,
             posting_class=PostingClass.HOLD,
@@ -677,6 +688,7 @@ class ValueLedger:
             source_refs=(hold_id,),
             allowed_restricted=frozenset({account_id}),
         )
+        self._holds[hold_id] = advanced
         return advanced
 
     def hold_decrease(
@@ -717,7 +729,8 @@ class ValueLedger:
         if amount.is_positive():
             self._require_encumbered_cover(account_id, amount, "expire")
         advanced = hold.expire(provenance=provenance)
-        self._holds[hold_id] = advanced
+        # Atomic hold coupling: record the expiry compensation posting before
+        # publishing the advanced hold (same ordering contract as hold_create).
         if amount.is_positive():
             self._record_posting(
                 journal_id=journal_id,
@@ -728,6 +741,7 @@ class ValueLedger:
                 source_refs=(hold_id,),
                 allowed_restricted=frozenset({account_id}),
             )
+        self._holds[hold_id] = advanced
         return advanced
 
     # ------------------------------------------------------------------
