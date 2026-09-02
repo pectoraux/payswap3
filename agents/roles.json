@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "roles": {
+    "architect": {
+      "cardinality": 1,
+      "authority": ["architecture", "work-order-activation", "review", "merge", "finalization", "governance"],
+      "mayDelegate": ["bounded implementation execution"],
+      "mergeAuthority": true
+    },
+    "implementation-worker": {
+      "provider": "zai",
+      "cardinality": "many",
+      "scope": "one active Work Order",
+      "authority": ["read repository", "modify owned surfaces", "run proofs", "open/update PR"],
+      "prohibitions": ["merge", "activate", "change frozen architecture", "change sibling scope", "lower assurance"]
+    },
+    "integration-worker": {
+      "provider": "zai",
+      "cardinality": "many",
+      "scope": "one integration Work Order",
+      "authority": ["combine already merged capabilities", "run cross-feature proofs"],
+      "prohibitions": ["merge", "change constituent Work Order semantics", "invent authority"]
+    },
+    "dogfooding-worker": {
+      "provider": "zai",
+      "cardinality": "many",
+      "scope": "one authorized experiment",
+      "authority": ["execute experiment", "record observations"],
+      "prohibitions": ["mutate code", "change architecture", "declare success outside evidence contract"]
+    }
+  }
+}
