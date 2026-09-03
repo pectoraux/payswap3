@@ -1,6 +1,6 @@
 # WORK-030 — External rail sandbox integration gate
 
-Status: planned
+Status: complete
 
 Objective: exercise canonical interoperability over at least two rail-shaped adapters and exception/investigation paths.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: sandbox rail A↔B and failure/reconciliation scenario.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
