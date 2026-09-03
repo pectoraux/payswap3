@@ -1,6 +1,6 @@
 # WORK-024 — Resilience, observability and recovery
 
-Status: in_flight
+Status: complete
 
 Objective: dependency graph, resilience profiles, health/economic metrics, incident/degradation/failover, recovery orchestration.
 
@@ -34,3 +34,7 @@ Definition of done: targeted verification passes, required evidence and experime
 ## Required context
 
 The worker context must include the exact current `main` revision, all dependency identities/types, this Work Order's owned and forbidden surfaces, the governing architecture version, assurance profile, required proofs, dogfooding/conformance contract, and protocol-registry reference.
+
+## Post-merge finalization
+
+Merged by the Architect as PR #33 at Git commit `81b5b57622cf80b0229e50d02c4cf31c372631e4` on 2026-09-03. Final implementation head on the worker branch is `b6e2863ffc32b809143bf42d4345bdb3d8897599` (tree-identical CI-refresh commit); the merge introduced the `src/operations/` implementation.
