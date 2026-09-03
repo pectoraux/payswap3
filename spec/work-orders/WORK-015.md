@@ -1,6 +1,6 @@
 # WORK-015 — Clearing, obligations and netting
 
-Status: planned
+Status: in_flight
 
 Objective: clearing cycles, obligations, bilateral/multilateral netting, gross/net calculations.
 
