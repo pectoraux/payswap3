@@ -1,6 +1,6 @@
 # WORK-031 — Merchant/end-to-end global fulfillment dogfood
 
-Status: planned
+Status: in_flight
 
 Objective: prove a real user-facing merchant outcome through the complete network, including delay/credit, recovery and evidence.
 
@@ -35,3 +35,7 @@ Definition of done: targeted verification passes, required evidence and experime
 ## Required context
 
 The worker context must include the exact current `main` revision, all dependency identities/types, this Work Order's owned and forbidden surfaces, the governing architecture version, assurance profile, required proofs, dogfooding/conformance contract, and protocol-registry reference.
+
+## Activation
+
+Activated by the Architect on 2026-09-03 after WORK-024, WORK-025, WORK-028 and WORK-030 were verified complete and merged. Starting implementation frontier: `9dc4b2f67d2ac87693f513814c60ae915ea5ee7c`. Owned integration surface: `IG-006`. Next action: implement and prove the merchant/end-to-end global fulfillment dogfood without introducing a new authority.
