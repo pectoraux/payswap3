@@ -1,6 +1,6 @@
 # WORK-027 — Fulfillment lifecycle integration gate
 
-Status: planned
+Status: in_flight
 
 Objective: prove intent through finality across the compiled lifecycle.
 
