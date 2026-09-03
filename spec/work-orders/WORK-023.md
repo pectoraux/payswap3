@@ -1,6 +1,6 @@
 # WORK-023 — Domains, federation and state commitments
 
-Status: in_flight
+Status: complete
 
 Objective: domains, state authorities, commitments, cross-domain messages, finality binding.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination, quality-attribute.
-
 Dogfooding/conformance experiment: two-domain payment scenario with signed state commitments and replayed inter-domain message.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
