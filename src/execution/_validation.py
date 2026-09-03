@@ -1,0 +1,132 @@
+"""Strict fail-closed validation helpers for the execution domain.
+
+Every failure raises :class:`~src.core.errors.CoreValidationError` — the
+single error authority owned by ``src.core`` — with a descriptive
+message. No second error authority is introduced.
+"""
+
+from __future__ import annotations
+
+import re
+from datetime import datetime
+from enum import StrEnum
+from typing import Any, Mapping
+
+from src.core.errors import CoreValidationError
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9/._:+-]*$")
+_MAX_IDENTIFIER_LENGTH = 200
+
+_EFFECT_TYPE_RE = re.compile(r"^[a-z0-9][a-z0-9-]+/[a-z0-9][a-z0-9.-]+$")
+
+
+def require_text(name: str, value: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise CoreValidationError(f"{name} must be a non-empty string")
+    return value
+
+
+def require_identifier(name: str, value: str) -> str:
+    """Require a canonical domain identifier (compact opaque token)."""
+    require_text(name, value)
+    if len(value) > _MAX_IDENTIFIER_LENGTH:
+        raise CoreValidationError(f"{name} must not exceed {_MAX_IDENTIFIER_LENGTH} characters")
+    if _IDENTIFIER_RE.match(value) is None:
+        raise CoreValidationError(
+            f"{name} must be a domain identifier matching {_IDENTIFIER_RE.pattern}"
+        )
+    return value
+
+
+def require_int(name: str, value: Any, *, minimum: int | None = None) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise CoreValidationError(f"{name} must be an integer")
+    if minimum is not None and value < minimum:
+        raise CoreValidationError(f"{name} must be >= {minimum}")
+    return value
+
+
+def require_digest(name: str, value: str) -> str:
+    require_text(name, value)
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise CoreValidationError(f"{name} must be a canonical SHA-256 hex digest")
+    return value
+
+
+def require_effect_type(name: str, value: str) -> str:
+    """Require the '<family>/<name>' effect type format (shared discipline)."""
+    require_text(name, value)
+    if _EFFECT_TYPE_RE.match(value) is None:
+        raise CoreValidationError(
+            f"{name} must use the '<family>/<name>' effect type format"
+        )
+    return value
+
+
+def parse_utc_timestamp(name: str, value: str) -> datetime:
+    """Parse a canonical UTC timestamp ending in ``Z``.
+
+    Timestamps are declared data, never clock reads: the execution domain
+    is deterministic and every instant is supplied explicitly. The
+    canonical ``Z`` form is required (fail closed on other offsets) so
+    ordering and window arithmetic are total, unambiguous and
+    byte-stable.
+    """
+    require_text(name, value)
+    if not value.endswith("Z"):
+        raise CoreValidationError(f"{name} must be an explicit UTC timestamp ending in 'Z'")
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise CoreValidationError(f"{name} must be an ISO-8601 UTC timestamp") from exc
+
+
+def require_utc_timestamp(name: str, value: str) -> str:
+    parse_utc_timestamp(name, value)
+    return value
+
+
+def require_utc_timestamp_order(name_a: str, value_a: str, name_b: str, value_b: str) -> None:
+    if parse_utc_timestamp(name_a, value_a) >= parse_utc_timestamp(name_b, value_b):
+        raise CoreValidationError(f"{name_b} must be strictly later than {name_a}")
+
+
+def parse_enum(name: str, value: Any, enum_type: type[StrEnum]) -> StrEnum:
+    if isinstance(value, enum_type):
+        return value
+    if isinstance(value, str):
+        try:
+            return enum_type(value)
+        except ValueError as exc:
+            raise CoreValidationError(
+                f"{name} must be one of the closed vocabulary "
+                f"{sorted(member.value for member in enum_type)}"
+            ) from exc
+    raise CoreValidationError(
+        f"{name} must be a {enum_type.__name__} (or its canonical string value)"
+    )
+
+
+def strict_fields(name: str, value: Mapping[str, Any], fields: frozenset[str]) -> None:
+    """Fail closed unless the mapping carries exactly the canonical field set."""
+    if not isinstance(value, Mapping):
+        raise CoreValidationError(f"{name} must be an object")
+    present = set(value)
+    expected = set(fields)
+    if present != expected:
+        missing = sorted(expected - present)
+        extra = sorted(present - expected)
+        raise CoreValidationError(
+            f"{name} fields are not canonical; missing={missing}, extra={extra}"
+        )
+
+
+def require_mapping(name: str, value: Any) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise CoreValidationError(f"{name} must be an object")
+    return value
+
+
+def require_str_enum(name: str, value: Any, enum_type: type[StrEnum]) -> StrEnum:
+    """Alias of :func:`parse_enum` kept for reader familiarity."""
+    return parse_enum(name, value, enum_type)
