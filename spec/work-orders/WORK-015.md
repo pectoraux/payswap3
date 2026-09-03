@@ -1,6 +1,6 @@
 # WORK-015 — Clearing, obligations and netting
 
-Status: in_flight
+Status: complete
 
 Objective: clearing cycles, obligations, bilateral/multilateral netting, gross/net calculations.
 
@@ -35,3 +35,11 @@ Definition of done: targeted verification passes, required evidence and experime
 ## Required context
 
 The worker context must include the exact current `main` revision, all dependency identities/types, this Work Order's owned and forbidden surfaces, the governing architecture version, assurance profile, required proofs, dogfooding/conformance contract, and protocol-registry reference.
+
+## Post-merge finalization
+
+- Architect decision: ACCEPTED and merged.
+- Pull request: #26.
+- Implementation revision: `433484eeb067dc7ebcd92def83c23b4aa6a9449c`.
+- Merge commit: `3044a06cc77d5dbb4a865953460710ff880c7f8a`.
+- Merge date: 2026-09-03.
