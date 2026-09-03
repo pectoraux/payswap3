@@ -1,6 +1,6 @@
 # WORK-016 — Settlement, finality and reconciliation
 
-Status: planned
+Status: in_flight
 
 Objective: settlement lifecycle, finality certificates, settlement reconciliation, reversals/returns boundaries.
 
