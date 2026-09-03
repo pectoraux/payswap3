@@ -37,10 +37,16 @@ ACTIVE_STATES = {"in_flight", "blocked", "ready_for_merge"}
 # implementation dependencies. `blocked` is deliberately excluded: it is the
 # lifecycle state for work held pending an incomplete dependency.
 EXECUTING_STATES = {"in_flight", "ready_for_merge"}
-# Paths that carry governance/control-plane authority. Any other path changed
-# between the recorded verified implementation frontier and main constitutes
-# unreconciled implementation drift.
-CONTROL_PLANE_PREFIXES = ("spec/", "agents/")
+# Paths that carry governance/control-plane authority: governance artifacts,
+# agent dispatch, the CI governance workflow, and the governance tooling
+# itself. Any other path changed between the recorded verified implementation
+# frontier and main constitutes unreconciled implementation drift.
+CONTROL_PLANE_PREFIXES = (
+    "spec/",
+    "agents/",
+    ".github/workflows/",
+    "scripts/",
+)
 REVISION_PATTERN = re.compile(r"[0-9a-f]{7,40}")
 DEP_TOKEN_PATTERN = re.compile(r"^(WORK-\d{3})\s+\((\w+)\)$")
 
