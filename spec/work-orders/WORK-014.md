@@ -1,6 +1,6 @@
 # WORK-014 — External effect adapters and execution
 
-Status: in_flight
+Status: complete
 
 Objective: execution plan/step/attempt, effect requests/results, adapter ports, idempotent submission.
 
