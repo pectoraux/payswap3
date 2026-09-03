@@ -1,6 +1,6 @@
 # WORK-029 — Extension/agent economic integration gate
 
-Status: planned
+Status: in_flight
 
 Objective: prove agent + extension composition, authority containment, simulation-first decision and economic contribution.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination, quality-attribute.
-
 Dogfooding/conformance experiment: real extension + real agent proposal on a merchant demand scenario.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
