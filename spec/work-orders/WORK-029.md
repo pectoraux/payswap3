@@ -1,6 +1,6 @@
 # WORK-029 — Extension/agent economic integration gate
 
-Status: in_flight
+Status: complete
 
 Objective: prove agent + extension composition, authority containment, simulation-first decision and economic contribution.
 
@@ -34,3 +34,7 @@ Definition of done: targeted verification passes, required evidence and experime
 ## Required context
 
 The worker context must include the exact current `main` revision, all dependency identities/types, this Work Order's owned and forbidden surfaces, the governing architecture version, assurance profile, required proofs, dogfooding/conformance contract, and protocol-registry reference.
+
+## Post-merge finalization
+
+Merged by the Architect as PR #34 at Git commit `9dc4b2f67d2ac87693f513814c60ae915ea5ee7c` on 2026-09-03. Final implementation head on the worker branch is `3da39515f68f3ebe6e23f50afb08bd8e4b3cd5be` (tree-identical CI-refresh commit); the merge introduced `src/integration/economics/`.
