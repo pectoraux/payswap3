@@ -1,6 +1,6 @@
 # WORK-024 — Resilience, observability and recovery
 
-Status: planned
+Status: in_flight
 
 Objective: dependency graph, resilience profiles, health/economic metrics, incident/degradation/failover, recovery orchestration.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination, quality-attribute.
-
 Dogfooding/conformance experiment: kill a simulated provider/dependency and observe safe degradation/recovery.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
