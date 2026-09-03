@@ -1,6 +1,6 @@
 # WORK-016 — Settlement, finality and reconciliation
 
-Status: in_flight
+Status: complete
 
 Objective: settlement lifecycle, finality certificates, settlement reconciliation, reversals/returns boundaries.
 
@@ -35,3 +35,10 @@ Definition of done: targeted verification passes, required evidence and experime
 ## Required context
 
 The worker context must include the exact current `main` revision, all dependency identities/types, this Work Order's owned and forbidden surfaces, the governing architecture version, assurance profile, required proofs, dogfooding/conformance contract, and protocol-registry reference.
+
+## Post-merge finalization
+
+Merged PR: #27
+Implementation commit: `1fcc00f8556a0705aa0dfe313e89282d88b737d0`
+Merge commit: `4862b85d003d455cdb8f230029c4431deabd09ce`
+Architect decision: accepted and merged after review of the required proof battery and owned-surface audit.
