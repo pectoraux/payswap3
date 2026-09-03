@@ -1,6 +1,6 @@
 # WORK-025 — Merchant checkout and settlement promises
 
-Status: in_flight
+Status: complete
 
 Objective: checkout intent, merchant acceptance, settlement promise, refund route, merchant credit constraints.
 
@@ -19,7 +19,6 @@ Acceptance criteria:
 - scope is isolated from sibling Work Orders wherever feasible.
 
 Required proofs: static, dynamic, discrimination.
-
 Dogfooding/conformance experiment: complete an end-to-end merchant checkout with a delayed/credited settlement scenario.
 
 Definition of done: targeted verification passes, required evidence and experiment are persisted, scope audit is clean, Architect approves and merges, and post-merge finalization records the actual Git merge.
