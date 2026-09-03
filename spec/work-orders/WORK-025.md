@@ -1,6 +1,6 @@
 # WORK-025 — Merchant checkout and settlement promises
 
-Status: planned
+Status: in_flight
 
 Objective: checkout intent, merchant acceptance, settlement promise, refund route, merchant credit constraints.
 
