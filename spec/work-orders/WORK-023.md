@@ -1,6 +1,6 @@
 # WORK-023 — Domains, federation and state commitments
 
-Status: planned
+Status: in_flight
 
 Objective: domains, state authorities, commitments, cross-domain messages, finality binding.
 
