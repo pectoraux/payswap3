@@ -234,6 +234,12 @@ class EconomicIntegrationGate:
         self._simulation = simulation
         self._production = production
         self._stage_journal: list[dict] = []
+        # The per-world chaining anchors: the composed state digest each
+        # world's role ended its last recorded stage with. The canonical
+        # stages drive both worlds in lockstep, so the journal alternates
+        # roles and continuity is enforced per role — never against the
+        # adjacent (other-world) entry.
+        self._last_state_after_by_role: dict[str, str] = {}
         # Bind the worlds' back-references (the projection reads the
         # stage journal of the owning world through them).
         simulation.gate = self
@@ -326,16 +332,15 @@ class EconomicIntegrationGate:
         state_before: str,
         state_after: str,
     ) -> None:
-        if self._stage_journal:
-            previous = self._stage_journal[-1]
-            if (
-                previous["role"] == world.role.value
-                and previous["state_after"] != state_before
-            ):
-                raise CoreValidationError(
-                    f"stage journal chaining violated at {stage!r}: the world's "
-                    "composed state changed outside a recorded stage"
-                )
+        role = world.role.value
+        last_state_after = self._last_state_after_by_role.get(role)
+        if last_state_after is not None and last_state_after != state_before:
+            raise CoreValidationError(
+                f"stage journal chaining violated at {stage!r}: the "
+                f"{role} world's composed state changed outside a "
+                "recorded stage"
+            )
+        self._last_state_after_by_role[role] = state_after
         self._stage_journal.append(
             {
                 "stage": stage,

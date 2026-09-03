@@ -12,7 +12,11 @@
   commands stay in their domains). Every probe must be CONTAINED with
   the composed domain state byte-unchanged (the books of both engines;
   agent-side rejection audit events are append-only journal records,
-  never book mutations).
+  never book mutations). Every kernel-mediated probe additionally
+  declares the exact ``RejectionReason`` boundary it exercises and
+  fails closed when the kernel rejects through any other mechanism —
+  the discrimination evidence is the declared boundary, not mere
+  rejection.
 * :func:`run_contribution_integrity_scenario` — the economic
   contribution integrity report: unverified treatments never earn,
   shadow activity adds no earnings, and the cross-currency attribution
@@ -132,11 +136,31 @@ def _probe(
     )
 
 
-def _reject_detail(result: Any) -> str | None:
-    """A kernel rejection result is a CONTAINED probe (the None path)."""
+def _reject_detail(
+    result: Any, expected_reason: RejectionReason
+) -> str | None:
+    """A kernel rejection is a CONTAINED probe only when the kernel
+    rejected for exactly the authority boundary the probe declares.
+
+    The None path (containment evidence) requires the declared
+    ``expected_reason``: a rejection through any other mechanism is
+    reported so the probe fails closed on missing discrimination
+    evidence instead of silently passing.
+    """
     if result.outcome is Outcome.REJECTED:
-        reason = result.reason.value if result.reason is not None else "rejected"
-        return None if reason == "REJECTED" else None
+        if result.reason == expected_reason:
+            return None
+        actual = (
+            result.reason.value
+            if result.reason is not None
+            else "no rejection reason"
+        )
+        return (
+            "the probe command was rejected by a different mechanism "
+            f"({actual}) than the expected boundary "
+            f"({expected_reason.value}); the probe does not prove the "
+            "declared authority boundary"
+        )
     if result.outcome is Outcome.DUPLICATE:
         return "the probe command was a DUPLICATE, not a rejection"
     return "the probe command was ACCEPTED"
@@ -179,7 +203,8 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
     )
 
     # 3. undeclared resource: the sandbox refuses resources the manifest
-    #    does not declare (extensions cannot access undeclared resources).
+    #    does not declare (extensions cannot access undeclared
+    #    resources); the declared boundary is POLICY_REJECTED.
     def _undeclared_resource() -> str | None:
         result = world.runtime.submit(
             extension_command(
@@ -202,11 +227,12 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.POLICY_REJECTED)
 
     results.append(_probe(world, gate, "undeclared-resource", _undeclared_resource))
 
-    # 4. undeclared capability: the manifest provides only route_proposal.
+    # 4. undeclared capability: the manifest provides only route_proposal;
+    #    the declared boundary is POLICY_REJECTED.
     def _undeclared_capability() -> str | None:
         result = world.runtime.submit(
             extension_command(
@@ -229,14 +255,15 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.POLICY_REJECTED)
 
     results.append(
         _probe(world, gate, "undeclared-capability", _undeclared_capability)
     )
 
     # 5. execute-tier proposal: an R4 EXECUTE principal tries to act as
-    #    an agent; the kernel denies it at the authorization stage.
+    #    an agent; the kernel denies it at the authorization stage
+    #    (the declared boundary is UNAUTHORIZED).
     def _execute_tier() -> str | None:
         result = world.agents.process(
             agents_command(
@@ -249,12 +276,13 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.UNAUTHORIZED)
 
     results.append(_probe(world, gate, "execute-tier-proposal", _execute_tier))
 
     # 6. out-of-scope family: the agent proposes a route family outside
-    #    its mandate scope; the policy gate rejects it.
+    #    its mandate scope; the policy gate rejects it (the declared
+    #    boundary is POLICY_REJECTED).
     def _out_of_scope() -> str | None:
         proposal = route_proposal(
             world,
@@ -275,7 +303,7 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.POLICY_REJECTED)
 
     results.append(_probe(world, gate, "out-of-scope-family", _out_of_scope))
 
@@ -328,7 +356,8 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
     )
 
     # 9. volume metric: activity volume is not a contribution measure
-    #    (the closed metric vocabulary rejects it).
+    #    (the closed metric vocabulary rejects it; the declared
+    #    boundary is POLICY_REJECTED).
     def _volume_metric() -> str | None:
         result = world.runtime.submit(
             extension_command(
@@ -361,7 +390,7 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.POLICY_REJECTED)
 
     results.append(_probe(world, gate, "volume-metric", _volume_metric))
 
@@ -402,7 +431,8 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
     results.append(_probe(world, gate, "suspended-model", _suspended_model))
 
     # 11. mandate authority class: the mandate must freeze exactly the
-    #     R2 PROPOSE tier (never a higher class).
+    #     R2 PROPOSE tier (never a higher class; an R4 mandate is
+    #     rejected with the declared boundary POLICY_REJECTED).
     def _mandate_authority() -> str | None:
         result = world.agents.process(
             agents_command(
@@ -424,7 +454,7 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
                 requested_at=T_MEASURE,
             )
         )
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.POLICY_REJECTED)
 
     results.append(
         _probe(world, gate, "mandate-authority-class", _mandate_authority)
@@ -453,7 +483,8 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
     results.append(_probe(world, gate, "agent-self-mediation", _self_mediation))
 
     # 13. foreign-domain command: an extension command aimed at another
-    #     domain is rejected by the kernel's domain binding.
+    #     domain is rejected by the kernel's domain binding (the
+    #     declared boundary is DOMAIN_MISMATCH).
     def _foreign_domain() -> str | None:
         command = Command.build(
             command_id="cmd/ig004-probe-foreign-domain",
@@ -475,11 +506,7 @@ def run_containment_battery() -> tuple[ContainmentProbeResult, ...]:
             ),
         )
         result = world.runtime.submit(command)
-        if result.outcome is Outcome.REJECTED and (
-            result.reason is RejectionReason.DOMAIN_MISMATCH
-        ):
-            return None
-        return _reject_detail(result)
+        return _reject_detail(result, RejectionReason.DOMAIN_MISMATCH)
 
     results.append(_probe(world, gate, "foreign-domain-command", _foreign_domain))
 

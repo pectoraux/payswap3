@@ -31,7 +31,13 @@ integration gate (WORK-029, ``spec/integration-gates.md`` row IG-004:
 * fail-closed hardening of the defense-in-depth re-check layers: forged
   authority journal events, non-hypothetical agent contexts, world
   mode/epistemic confusion, tampered snapshot digests, divergent
-  re-sealed verdicts and containment-probe state accounting.
+  re-sealed verdicts and containment-probe state accounting;
+* containment-probe discrimination: a kernel rejection counts as
+  containment evidence only when the kernel rejected for exactly the
+  authority boundary the probe declares (any other mechanism is
+  reported, never silently accepted), and the gate's stage-journal
+  chaining holds per world across the simulation/production
+  interleaving (not only against an adjacent same-role entry).
 
 The suite is fully deterministic and network-free; every instant is
 declared ``as_of`` data.
@@ -463,6 +469,163 @@ class TestAuthorityContainment(unittest.TestCase):
     def test_probes_leave_the_composed_state_unchanged(self) -> None:
         for probe in self.probes:
             self.assertTrue(probe.state_unchanged, probe.detail)
+
+
+class TestContainmentReasonDiscrimination(unittest.TestCase):
+    """A containment probe proves the exact rejection mechanism.
+
+    Rejection alone is not containment evidence: the kernel must
+    reject for precisely the authority boundary the probe declares,
+    and a rejection by any other mechanism (version conflict, unknown
+    command type, a missing object, ...) is reported instead of
+    silently accepted.
+    """
+
+    def test_rejection_with_the_declared_reason_is_contained(self) -> None:
+        from src.transition import Outcome, RejectionReason
+
+        from src.integration.economics.scenarios import _reject_detail
+
+        result = SimpleNamespace(
+            outcome=Outcome.REJECTED, reason=RejectionReason.POLICY_REJECTED
+        )
+        self.assertIsNone(
+            _reject_detail(result, RejectionReason.POLICY_REJECTED)
+        )
+
+    def test_rejection_by_any_other_mechanism_is_reported(self) -> None:
+        from src.transition import Outcome, RejectionReason
+
+        from src.integration.economics.scenarios import _reject_detail
+
+        for wrong_reason in RejectionReason:
+            if wrong_reason is RejectionReason.POLICY_REJECTED:
+                continue
+            result = SimpleNamespace(
+                outcome=Outcome.REJECTED, reason=wrong_reason
+            )
+            detail = _reject_detail(result, RejectionReason.POLICY_REJECTED)
+            self.assertIsNotNone(detail, wrong_reason.value)
+            self.assertIn("different mechanism", detail)
+            self.assertIn(wrong_reason.value, detail)
+        no_reason = SimpleNamespace(outcome=Outcome.REJECTED, reason=None)
+        detail = _reject_detail(no_reason, RejectionReason.POLICY_REJECTED)
+        self.assertIsNotNone(detail)
+        self.assertIn("different mechanism", detail)
+
+    def test_real_kernel_rejection_with_a_wrong_declared_boundary(self) -> None:
+        # The REAL extensions kernel rejects the undeclared-resource
+        # invocation for policy reasons; declaring a different boundary
+        # (an authorization denial) must not pass as containment.
+        from src.integration.economics.contracts import T_MEASURE
+        from src.integration.economics.scenarios import _reject_detail
+        from src.integration.economics.worlds import (
+            current_extension_version,
+            extension_command,
+        )
+        from src.transition import Outcome, RejectionReason
+
+        gate, _verdict = run_economic_scenario()
+        world = gate.simulation_world
+        result = world.runtime.submit(
+            extension_command(
+                world,
+                command_id="cmd/ig004-probe-wrong-boundary",
+                command_type="extension/invoke",
+                target_refs=(
+                    "extension-invocation/ig004-probe-wrong-boundary",
+                ),
+                payload={
+                    "invocation_id": (
+                        "extension-invocation/ig004-probe-wrong-boundary"
+                    ),
+                    "capability": "route_proposal",
+                    "inputs": [world.demand_artifact.to_dict()],
+                    "resources": {"observe_protocol_state": {"view": "full"}},
+                    "as_of": T_MEASURE,
+                    "jurisdiction": "US",
+                },
+                expected_versions=(
+                    ("extension-invocation/ig004-probe-wrong-boundary", 0),
+                    (INSTANCE_ID, current_extension_version(world, INSTANCE_ID)),
+                ),
+                requested_at=T_MEASURE,
+            )
+        )
+        self.assertIs(result.outcome, Outcome.REJECTED)
+        self.assertEqual(result.reason, RejectionReason.POLICY_REJECTED)
+        detail = _reject_detail(result, RejectionReason.UNAUTHORIZED)
+        self.assertIsNotNone(detail)
+        self.assertIn("different mechanism", detail)
+        self.assertIn("policy_rejected", detail)
+
+    def test_duplicate_and_accepted_outcomes_stay_reported(self) -> None:
+        from src.transition import Outcome, RejectionReason
+
+        from src.integration.economics.scenarios import _reject_detail
+
+        duplicate = SimpleNamespace(
+            outcome=Outcome.DUPLICATE, reason=RejectionReason.POLICY_REJECTED
+        )
+        detail = _reject_detail(duplicate, RejectionReason.POLICY_REJECTED)
+        self.assertIsNotNone(detail)
+        self.assertIn("DUPLICATE", detail)
+        accepted = SimpleNamespace(
+            outcome=Outcome.ACCEPTED, reason=RejectionReason.POLICY_REJECTED
+        )
+        detail = _reject_detail(accepted, RejectionReason.POLICY_REJECTED)
+        self.assertIsNotNone(detail)
+        self.assertIn("ACCEPTED", detail)
+
+
+class TestStageJournalChainingDiscipline(unittest.TestCase):
+    """The gate's own chaining check holds per world, across interleaving.
+
+    The canonical stages drive both worlds in lockstep, so the journal
+    alternates roles; a world's composed-state continuity must be
+    enforced against ITS last recorded stage — not only against an
+    adjacent same-role entry, which the interleaving never produces.
+    """
+
+    def record(
+        self, gate: EconomicIntegrationGate, world, stage, state_before, state_after
+    ) -> None:
+        gate._record_stage(
+            stage,
+            world,
+            domain="domain/test",
+            command_id=f"cmd/test-{stage}-{world.role.value}",
+            requested_at="2025-01-01T00:00:00Z",
+            outcome="ACCEPTED",
+            state_before=state_before,
+            state_after=state_after,
+        )
+
+    def test_interleaved_out_of_band_state_change_fails_closed(self) -> None:
+        from src.core.errors import CoreValidationError
+
+        gate = EconomicIntegrationGate()
+        self.record(gate, gate.simulation_world, "s1", "A", "B")
+        self.record(gate, gate.production_world, "s1", "X", "Y")
+        # The adjacent journal entry belongs to the production world, so
+        # only a per-world check can see the simulation world's gap (B
+        # -> C) — exactly the interleaving every canonical stage drives.
+        with self.assertRaises(CoreValidationError) as raised:
+            self.record(gate, gate.simulation_world, "s2", "C", "D")
+        self.assertIn("chaining violated", str(raised.exception))
+        self.assertIn("simulation", str(raised.exception))
+
+    def test_interleaved_chained_stages_are_accepted(self) -> None:
+        gate = EconomicIntegrationGate()
+        self.record(gate, gate.simulation_world, "s1", "A", "B")
+        self.record(gate, gate.production_world, "s1", "X", "Y")
+        self.record(gate, gate.simulation_world, "s2", "B", "C")
+        self.record(gate, gate.production_world, "s2", "Y", "Z")
+        roles = [entry["role"] for entry in gate.stage_journal]
+        self.assertEqual(
+            roles,
+            ["simulation", "production-compatible"] * 2,
+        )
 
 
 class TestSimulationFirstDecision(unittest.TestCase):
