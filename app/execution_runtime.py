@@ -5,13 +5,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.execution import ExecutionEngine
-from src.execution.dogfooding import (
-    SANDBOX_ADAPTER_ID,
-    SandboxRail,
-    make_sandbox_binding,
-)
-from src.simulation.effects import EffectAuthorization
+from src.execution.dogfooding import SANDBOX_ADAPTER_ID, SandboxRail, make_sandbox_binding
 from src.intent import Intent
+from src.simulation.effects import EffectAuthorization
 
 
 SANDBOX_FRAUD_GATE = {
@@ -49,26 +45,38 @@ def _sandbox_authorization() -> EffectAuthorization:
     )
 
 
-def execute_sandbox(*, task_id: int, binding: dict[str, Any]) -> dict[str, Any]:
-    """Run a product-bound protocol draft through the real execution kernel.
+def execute_sandbox(*, task_id: int, binding: dict[str, Any], handoff: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a product execution handoff and run it through the real kernel.
 
-    This is intentionally available only in ``PAYSWAP_EXECUTION_MODE=sandbox``.
-    The sandbox rail is the repository's deterministic test-side adapter: it
-    exercises the public execution engine and its authority/idempotency gates
-    without moving real funds. Production execution must supply a configured
-    real adapter outside the product shell.
+    Only the explicit sandbox runtime may call this function. The product
+    supplies no live financial authority: the existing execution domain owns
+    command authorization, effect gating, idempotency and state transitions.
     """
     if execution_mode() != "sandbox":
         raise ValueError("The governed execution service is not configured for this environment.")
     if binding.get("state") != "DRAFT":
         raise ValueError("Only a DRAFT protocol intent can be executed from this workflow.")
+    if handoff.get("state") != "DRAFT" or handoff.get("step_state") != "PENDING":
+        raise ValueError("Only a fresh DRAFT/PENDING execution handoff can be executed.")
 
     intent = Intent.from_dict(binding["objects"]["intent"])
+    intent_id = binding.get("intent_id")
+    source_intent_id = handoff.get("source_intent_id")
+    if intent_id != source_intent_id:
+        raise ValueError("The execution handoff does not match the protocol intent.")
+
     amount = intent.spec.amount
     destination = binding.get("destination_reference")
     if not isinstance(destination, str) or not destination:
         raise ValueError("The protocol draft is missing its destination reference.")
 
+    source_handoff_plan_id = handoff.get("execution_plan_id")
+    if not isinstance(source_handoff_plan_id, str) or not source_handoff_plan_id:
+        raise ValueError("The execution handoff is missing its plan reference.")
+
+    # The immutable handoff plan contains unresolved placeholders. Resolving
+    # those placeholders produces a new governed execution plan; the handoff
+    # remains intact as the audit record of what the product requested.
     plan_id = f"product-task-{task_id}-sandbox-execution"
     step_id = f"{plan_id}/step/1"
     rail = SandboxRail()
@@ -84,7 +92,7 @@ def execute_sandbox(*, task_id: int, binding: dict[str, Any]) -> dict[str, Any]:
         requested_at=now,
         plan_id=plan_id,
         source_ref=intent.object_id,
-        summary=f"Sandbox execution for product task {task_id}",
+        summary=f"Resolved sandbox execution for product task {task_id}",
         steps=[
             {
                 "step_id": step_id,
@@ -111,20 +119,15 @@ def execute_sandbox(*, task_id: int, binding: dict[str, Any]) -> dict[str, Any]:
         compliance_assessment=SANDBOX_COMPLIANCE_GATE,
         mandate_ref=f"sandbox-mandate:task:{task_id}",
     )
-    engine.start_plan(
-        command_id=f"product-task-{task_id}-execution-start",
-        requested_at=now,
-        plan_id=plan_id,
-    )
+    engine.start_plan(command_id=f"product-task-{task_id}-execution-start", requested_at=now, plan_id=plan_id)
 
     request_key = f"product-task-{task_id}-sandbox-payment"
-    authorization = _sandbox_authorization()
     engine.request_effect(
         command_id=f"product-task-{task_id}-effect-request",
         requested_at=now,
         step_id=step_id,
         idempotency_key=request_key,
-        authorization=authorization,
+        authorization=_sandbox_authorization(),
         hold=SANDBOX_HOLD,
     )
     submission = engine.submit_step(
@@ -135,9 +138,7 @@ def execute_sandbox(*, task_id: int, binding: dict[str, Any]) -> dict[str, Any]:
     if submission.outcome.value != "accepted":
         raise ValueError(f"Sandbox execution did not accept the effect: {submission.outcome.value}.")
 
-    native_reference = engine.step(step_id).spec.payload.get("native_reference")
-    # The rail's deterministic reference is derived from the request key.
-    native_reference = native_reference or f"sandbox/{request_key}"
+    native_reference = f"sandbox/{request_key}"
     engine.acknowledge_step(
         command_id=f"product-task-{task_id}-effect-acknowledge",
         requested_at=now,
@@ -162,6 +163,7 @@ def execute_sandbox(*, task_id: int, binding: dict[str, Any]) -> dict[str, Any]:
         "execution_mode": "sandbox",
         "environment": "sandbox",
         "adapter_id": SANDBOX_ADAPTER_ID,
+        "source_handoff_plan_id": source_handoff_plan_id,
         "execution_plan_id": plan_id,
         "execution_step_id": step_id,
         "plan_state": engine.plan(plan_id).state.value,
