@@ -32,6 +32,9 @@ DEMO_USERS = [
     ("demo-admin", "admin", "Alex Admin"),
 ]
 
+DEFAULT_ADMIN_USERNAME = "ekontetevi@gmail"
+DEFAULT_ADMIN_PASSWORD_HASH = "scrypt$15$8$1$pL1bkAUVQzmHqcshWJrZxQ==$_TR4n2WU1rKcGEPyCWSbnrYjrZeESa1jxtvwqRAaBaM="
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS waitlist (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,8 +56,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 """
 
+
 def _db_path() -> Path:
     return Path(os.getenv("PAYSWAP_AUTH_DB", "app/data/auth.sqlite3"))
+
 
 def _connect() -> sqlite3.Connection:
     p = _db_path()
@@ -64,20 +69,39 @@ def _connect() -> sqlite3.Connection:
     conn.executescript(SCHEMA)
     return conn
 
+
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**15, r=8, p=1, dklen=32)
+    digest = hashlib.scrypt(
+        password.encode(),
+        salt=salt,
+        n=2**15,
+        r=8,
+        p=1,
+        dklen=32,
+        maxmem=1024 * 1024 * 1024,
+    )
     return "scrypt$15$8$1$" + base64.urlsafe_b64encode(salt).decode() + "$" + base64.urlsafe_b64encode(digest).decode()
+
 
 def verify_password(password: str, encoded: str) -> bool:
     try:
         _, logn, r, p, salt_b64, digest_b64 = encoded.split("$")
         salt = base64.urlsafe_b64decode(salt_b64.encode())
         expected = base64.urlsafe_b64decode(digest_b64.encode())
-        actual = hashlib.scrypt(password.encode(), salt=salt, n=2**int(logn), r=int(r), p=int(p), dklen=32)
+        actual = hashlib.scrypt(
+            password.encode(),
+            salt=salt,
+            n=2**int(logn),
+            r=int(r),
+            p=int(p),
+            dklen=32,
+            maxmem=1024 * 1024 * 1024,
+        )
         return hmac.compare_digest(actual, expected)
     except (ValueError, TypeError):
         return False
+
 
 def ensure_demo_users() -> None:
     conn = _connect()
@@ -89,6 +113,35 @@ def ensure_demo_users() -> None:
     conn.commit()
     conn.close()
 
+
+def ensure_default_admin() -> bool:
+    conn = _connect()
+    try:
+        row = conn.execute(
+            "SELECT id FROM users WHERE username=?",
+            (DEFAULT_ADMIN_USERNAME,),
+        ).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE users SET role='admin', is_demo=0 WHERE username=?",
+                (DEFAULT_ADMIN_USERNAME,),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO users(username,name,role,password_hash,is_demo) VALUES(?,?,?,?,0)",
+                (
+                    DEFAULT_ADMIN_USERNAME,
+                    "Ekontetevi Admin",
+                    "admin",
+                    DEFAULT_ADMIN_PASSWORD_HASH,
+                ),
+            )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
 def bootstrap_admin_from_env() -> bool:
     email = os.getenv("PAYSWAP_ADMIN_EMAIL", "").strip().lower()
     password = os.getenv("PAYSWAP_ADMIN_PASSWORD", "")
@@ -98,7 +151,10 @@ def bootstrap_admin_from_env() -> bool:
     row = conn.execute("SELECT id FROM users WHERE username=?", (email,)).fetchone()
     encoded = hash_password(password)
     if row:
-        conn.execute("UPDATE users SET role='admin',password_hash=?,is_demo=0 WHERE username=?", (encoded, email))
+        conn.execute(
+            "UPDATE users SET role='admin',password_hash=?,is_demo=0 WHERE username=?",
+            (encoded, email),
+        )
     else:
         conn.execute(
             "INSERT INTO users(username,name,role,password_hash,is_demo) VALUES(?,?,?,?,0)",
@@ -108,17 +164,26 @@ def bootstrap_admin_from_env() -> bool:
     conn.close()
     return True
 
+
 def authenticate(username: str, password: str) -> sqlite3.Row | None:
     conn = _connect()
-    row = conn.execute("SELECT * FROM users WHERE lower(username)=lower(?) AND is_demo=0", (username.strip(),)).fetchone()
+    row = conn.execute(
+        "SELECT * FROM users WHERE lower(username)=lower(?) AND is_demo=0",
+        (username.strip(),),
+    ).fetchone()
     conn.close()
     return row if row and row["password_hash"] and verify_password(password, row["password_hash"]) else None
 
+
 def get_demo(username: str) -> sqlite3.Row | None:
     conn = _connect()
-    row = conn.execute("SELECT * FROM users WHERE username=? AND is_demo=1", (username,)).fetchone()
+    row = conn.execute(
+        "SELECT * FROM users WHERE username=? AND is_demo=1",
+        (username,),
+    ).fetchone()
     conn.close()
     return row
+
 
 def join_waitlist(name: str, email: str, role: str, organization: str) -> tuple[bool, str]:
     if not name.strip() or not email.strip() or "@" not in email:
@@ -126,7 +191,10 @@ def join_waitlist(name: str, email: str, role: str, organization: str) -> tuple[
     role = role if role in ROLE_LABELS else "customer"
     conn = _connect()
     try:
-        conn.execute("INSERT INTO waitlist(email,name,role,organization) VALUES(?,?,?,?)", (email.strip().lower(), name.strip(), role, organization.strip()))
+        conn.execute(
+            "INSERT INTO waitlist(email,name,role,organization) VALUES(?,?,?,?)",
+            (email.strip().lower(), name.strip(), role, organization.strip()),
+        )
         conn.commit()
         return True, "You're on the list."
     except sqlite3.IntegrityError:
@@ -134,16 +202,28 @@ def join_waitlist(name: str, email: str, role: str, organization: str) -> tuple[
     finally:
         conn.close()
 
+
 def list_waitlist() -> list[sqlite3.Row]:
     conn = _connect()
     rows = conn.execute("SELECT * FROM waitlist ORDER BY id DESC").fetchall()
     conn.close()
     return rows
 
-def create_user_from_waitlist(waitlist_id: int, username: str, name: str, role: str, password: str) -> tuple[bool, str]:
+
+def create_user_from_waitlist(
+    waitlist_id: int,
+    username: str,
+    name: str,
+    role: str,
+    password: str,
+) -> tuple[bool, str]:
     role = role if role in ROLE_LABELS and role != "admin" else "customer"
     if len(password) < 10:
         return False, "Use a temporary password of at least 10 characters."
+    username = username.strip().lower()
+    name = name.strip()
+    if not username or not name:
+        return False, "Username and name are required."
     conn = _connect()
     try:
         item = conn.execute("SELECT * FROM waitlist WHERE id=?", (waitlist_id,)).fetchone()
@@ -151,7 +231,7 @@ def create_user_from_waitlist(waitlist_id: int, username: str, name: str, role: 
             return False, "Waitlist entry not found."
         conn.execute(
             "INSERT INTO users(username,name,role,password_hash,is_demo) VALUES(?,?,?,?,0)",
-            (username.strip().lower(), name.strip(), role, hash_password(password)),
+            (username, name, role, hash_password(password)),
         )
         conn.execute("UPDATE waitlist SET status='account_created' WHERE id=?", (waitlist_id,))
         conn.commit()
@@ -161,5 +241,9 @@ def create_user_from_waitlist(waitlist_id: int, username: str, name: str, role: 
     finally:
         conn.close()
 
+
 def demo_role_cards() -> list[dict[str, Any]]:
-    return [{"username": u, "role": role, "label": ROLE_LABELS[role]} for u, role, _ in DEMO_USERS]
+    return [
+        {"username": u, "role": role, "label": ROLE_LABELS[role]}
+        for u, role, _ in DEMO_USERS
+    ]
