@@ -6,7 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 from src.core import Provenance
-from src.execution import ExecutionStepSpec, make_plan_record, make_step_record, step_object_id
+from src.execution import ExecutionStepSpec
+from src.execution.plan import make_plan_record, make_step_record, step_object_id
 from src.intent import (
     Amount,
     EconomicSlack,
@@ -80,8 +81,6 @@ def _require_utc_timestamp(value: str) -> str:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
         raise ValueError("Choose a valid deadline.") from exc
-    # HTML datetime-local values are intentionally timezone-naive. The form
-    # labels them as UTC, so normalize a naive value as UTC at the product edge.
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
