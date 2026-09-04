@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from .auth import ROLE_LABELS, ROLES, authenticate, bootstrap_admin_from_env, create_user_from_waitlist, demo_role_cards, ensure_default_admin, ensure_demo_users, get_demo, join_waitlist, list_waitlist
-from .protocol_bridge import build_protocol_binding
-from .workflows import advance_task, create_task, decode_payload, decode_protocol_binding, get_task, list_tasks, route_options, save_protocol_binding, validate_checkout, validate_pay
+from .protocol_bridge import build_execution_handoff, build_protocol_binding
+from .workflows import advance_task, create_task, decode_execution_handoff, decode_payload, decode_protocol_binding, get_task, list_tasks, route_options, save_execution_handoff, save_protocol_binding, validate_checkout, validate_pay
 
 
 def _safe_next(value: str | None) -> str:
@@ -193,7 +193,7 @@ def create_app() -> Flask:
     def task_detail(task_id: int):
         task = task_or_404(task_id)
         state_labels = {"DRAFT": "Draft", "OPTIONS": "Options ready", "NEEDS_DECISION": "Needs your decision", "IN_PROGRESS": "In progress", "WAITING": "Waiting for governed execution", "COMPLETED": "Completed", "NEEDS_ATTENTION": "Needs attention"}
-        return render_template("workflow_task.html", task=task, payload=decode_payload(task), protocol_binding=decode_protocol_binding(task), options=route_options(task), state_label=state_labels[task["state"]])
+        return render_template("workflow_task.html", task=task, payload=decode_payload(task), protocol_binding=decode_protocol_binding(task), execution_handoff=decode_execution_handoff(task), options=route_options(task), state_label=state_labels[task["state"]])
 
     @app.post("/app/task/<int:task_id>/options")
     @login_required()
@@ -233,14 +233,7 @@ def create_app() -> Flask:
             return redirect(url_for("task_detail", task_id=task_id))
         user = current_user()
         try:
-            binding = build_protocol_binding(
-                task_id=task_id,
-                owner_id=owner_id(),
-                username=user["username"],
-                kind=task["kind"],
-                payload=decode_payload(task),
-                selected_option=selected,
-            )
+            binding = build_protocol_binding(task_id=task_id, owner_id=owner_id(), username=user["username"], kind=task["kind"], payload=decode_payload(task), selected_option=selected)
             if not save_protocol_binding(task_id, owner_id=owner_id(), binding=binding):
                 flash("The protocol draft could not be recorded safely.", "error")
                 return redirect(url_for("task_detail", task_id=task_id))
@@ -248,6 +241,27 @@ def create_app() -> Flask:
         except ValueError as exc:
             flash(str(exc), "error")
             return redirect(url_for("task_detail", task_id=task_id))
+        return redirect(url_for("task_detail", task_id=task_id))
+
+    @app.post("/app/task/<int:task_id>/handoff")
+    @login_required()
+    @csrf_protected
+    def prepare_execution_handoff(task_id: int):
+        task = task_or_404(task_id)
+        if task["execution_handoff_json"] is not None:
+            flash("The execution handoff is already prepared.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        binding = decode_protocol_binding(task)
+        selected = task["selected_option"]
+        if binding is None or task["state"] != "WAITING" or not selected:
+            flash("Create a protocol draft before preparing the execution handoff.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        try:
+            handoff = build_execution_handoff(task_id=task_id, username=current_user()["username"], binding=binding, selected_option=selected)
+            if not save_execution_handoff(task_id, owner_id=owner_id(), handoff=handoff):
+                flash("The execution handoff could not be recorded safely.", "error")
+        except ValueError as exc:
+            flash(str(exc), "error")
         return redirect(url_for("task_detail", task_id=task_id))
 
     @app.post("/app/task/<int:task_id>/simulate")

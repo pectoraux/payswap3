@@ -16,6 +16,7 @@ from app.auth import (
     join_waitlist,
 )
 from app.workflows import get_task
+from src.execution import ExecutionPlan, ExecutionPlanState, ExecutionStep, ExecutionStepState
 from src.intent import EconomicSlack, FulfillmentPolicy, Intent, IntentState
 
 
@@ -133,6 +134,51 @@ class AuthShellTests(unittest.TestCase):
         self.assertEqual(intent.spec.funding.sources[0].source_id, "product:user:1:default")
         self.assertEqual(policy.spec.allow_asset_substitution, False)
 
+    def test_customer_protocol_draft_prepares_sealed_execution_handoff(self) -> None:
+        token = self.sign_in_demo("demo-customer")
+        response = self.client.post(
+            "/app/pay",
+            data={"csrf_token": token, "recipient": "Execution Supplier", "amount": "125.50", "asset": "USD", "deadline": "2030-01-02T12:00"},
+        )
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
+        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "fast"})
+        self.client.post(f"/app/task/{task_id}/bind", data={"csrf_token": token})
+        self.client.get(f"/app/task/{task_id}")
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        response = self.client.post(f"/app/task/{task_id}/handoff", data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        task = get_task(task_id, owner_id=1)
+        assert task is not None
+        self.assertEqual(task["state"], "WAITING")
+        from app.workflows import decode_execution_handoff
+        handoff = decode_execution_handoff(task)
+        assert handoff is not None
+        self.assertEqual(handoff["state"], "DRAFT")
+        self.assertEqual(handoff["step_state"], "PENDING")
+        self.assertEqual(handoff["authorization"], "NOT_AUTHORIZED")
+        self.assertEqual(handoff["execution"], "NOT_STARTED")
+        plan = ExecutionPlan.from_dict(handoff["plan"])
+        step = ExecutionStep.from_dict(handoff["step"])
+        self.assertEqual(plan.state, ExecutionPlanState.DRAFT)
+        self.assertEqual(plan.spec.source_ref, task["protocol_binding_json"] and __import__("json").loads(task["protocol_binding_json"])["intent_id"])
+        self.assertEqual(step.state, ExecutionStepState.PENDING)
+        self.assertEqual(step.spec.plan_id, plan.object_id)
+        self.assertEqual(step.spec.adapter_id, "pending-adapter")
+        self.assertEqual(step.spec.reservation_ref.startswith("pending-reservation:"), True)
+
+    def test_task_handoff_is_owner_scoped(self) -> None:
+        token = self.sign_in_demo("demo-customer")
+        response = self.client.post("/app/pay", data={"csrf_token": token, "recipient": "Private Co", "amount": "10", "asset": "USD", "deadline": "2030-01-02T12:00"})
+        self.assertEqual(response.status_code, 302)
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        self.assertIsNotNone(get_task(task_id, owner_id=1))
+        self.assertIsNone(get_task(task_id, owner_id=999999))
+
     def test_merchant_can_create_checkout_and_customer_cannot(self) -> None:
         token = self.sign_in_demo("demo-merchant")
         response = self.client.post(
@@ -146,14 +192,6 @@ class AuthShellTests(unittest.TestCase):
         response = self.client.get("/app/checkout")
         self.assertEqual(response.status_code, 302)
         self.assertIn("/app", response.headers["Location"])
-
-    def test_task_data_is_owner_scoped(self) -> None:
-        token = self.sign_in_demo("demo-customer")
-        response = self.client.post("/app/pay", data={"csrf_token": token, "recipient": "Private Co", "amount": "10", "asset": "USD", "deadline": "2030-01-02T12:00"})
-        self.assertEqual(response.status_code, 302)
-        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
-        self.assertIsNotNone(get_task(task_id, owner_id=1))
-        self.assertIsNone(get_task(task_id, owner_id=999999))
 
     def test_waitlist_then_admin_account_creation(self) -> None:
         token = self.csrf("/waitlist")

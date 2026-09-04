@@ -20,12 +20,16 @@ def _connect() -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
-    conn.execute("CREATE TABLE IF NOT EXISTS product_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER NOT NULL, owner_role TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL, title TEXT NOT NULL, payload_json TEXT NOT NULL, selected_option TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, protocol_binding_json TEXT, protocol_binding_created_at TEXT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS product_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER NOT NULL, owner_role TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL, title TEXT NOT NULL, payload_json TEXT NOT NULL, selected_option TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, protocol_binding_json TEXT, protocol_binding_created_at TEXT, execution_handoff_json TEXT, execution_handoff_created_at TEXT)")
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(product_tasks)")}
     if "protocol_binding_json" not in columns:
         conn.execute("ALTER TABLE product_tasks ADD COLUMN protocol_binding_json TEXT")
     if "protocol_binding_created_at" not in columns:
         conn.execute("ALTER TABLE product_tasks ADD COLUMN protocol_binding_created_at TEXT")
+    if "execution_handoff_json" not in columns:
+        conn.execute("ALTER TABLE product_tasks ADD COLUMN execution_handoff_json TEXT")
+    if "execution_handoff_created_at" not in columns:
+        conn.execute("ALTER TABLE product_tasks ADD COLUMN execution_handoff_created_at TEXT")
     return conn
 
 
@@ -39,7 +43,7 @@ def create_task(*, owner_id: int, owner_role: str, kind: str, payload: dict[str,
     now = _now()
     conn = _connect()
     try:
-        cur = conn.execute("INSERT INTO product_tasks(owner_id,owner_role,kind,state,title,payload_json,selected_option,created_at,updated_at,protocol_binding_json,protocol_binding_created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (owner_id, owner_role, kind, "DRAFT", payload.get("title") or TASK_KINDS[kind], json.dumps(payload, sort_keys=True), None, now, now, None, None))
+        cur = conn.execute("INSERT INTO product_tasks(owner_id,owner_role,kind,state,title,payload_json,selected_option,created_at,updated_at,protocol_binding_json,protocol_binding_created_at,execution_handoff_json,execution_handoff_created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", (owner_id, owner_role, kind, "DRAFT", payload.get("title") or TASK_KINDS[kind], json.dumps(payload, sort_keys=True), None, now, now, None, None, None, None))
         conn.commit()
         return int(cur.lastrowid)
     finally:
@@ -86,12 +90,29 @@ def save_protocol_binding(task_id: int, *, owner_id: int, binding: dict[str, Any
         conn.close()
 
 
+def save_execution_handoff(task_id: int, *, owner_id: int, handoff: dict[str, Any]) -> bool:
+    now = _now()
+    encoded = json.dumps(handoff, sort_keys=True)
+    conn = _connect()
+    try:
+        cur = conn.execute("UPDATE product_tasks SET execution_handoff_json=?, execution_handoff_created_at=?, updated_at=? WHERE id=? AND owner_id=? AND execution_handoff_json IS NULL", (encoded, now, now, task_id, owner_id))
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
 def decode_payload(row: sqlite3.Row) -> dict[str, Any]:
     return json.loads(row["payload_json"])
 
 
 def decode_protocol_binding(row: sqlite3.Row) -> dict[str, Any] | None:
     value = row["protocol_binding_json"]
+    return None if value is None else json.loads(value)
+
+
+def decode_execution_handoff(row: sqlite3.Row) -> dict[str, Any] | None:
+    value = row["execution_handoff_json"]
     return None if value is None else json.loads(value)
 
 
