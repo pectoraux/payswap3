@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "project": "payswap3-product",
+  "programStatus": "ui_implementation_ready",
+  "sourceOfTruth": "repository",
+  "roadmap": {
+    "path": "spec/product/implementation-roadmap.md",
+    "status": "FROZEN",
+    "authority": "human-readable product/UI implementation sequencing and progress",
+    "workItems": "spec/product/work-items.md",
+    "workOrders": "spec/product/work-orders/",
+    "machineState": "spec/development-state/product-program-state.json",
+    "synchronizationRequired": true
+  },
+  "protocolProgram": {
+    "status": "complete",
+    "lastWorkOrder": "WORK-033",
+    "note": "WORK-001 through WORK-033 are complete. Product UI work does not create WORK-034+ unless a separately governed protocol scope is authorized."
+  },
+  "currentMainAtBootstrap": "d097b15431a10a402c1b686d8bd4d88457956616",
+  "completedProductMilestones": [
+    {
+      "id": "PRODUCT-FOUNDATION-01",
+      "pr": 38,
+      "mergeCommit": "fe7c65d224ec6860815a265db95300b488ba5c64",
+      "scope": "Product UX architecture plus authentication/waitlist and role-aware shell foundation",
+      "status": "FINAL"
+    },
+    {
+      "id": "PRODUCT-FOUNDATION-02",
+      "pr": 39,
+      "mergeCommit": "e5dc3f1b5ca5f27900a730adfc12d45be0c12fc6",
+      "scope": "First outcome workflow vertical slice with owner-scoped product tasks",
+      "status": "FINAL"
+    },
+    {
+      "id": "PRODUCT-FOUNDATION-03",
+      "pr": 40,
+      "mergeCommit": "b0252efd6cb46e5efe52bb96a40cbeb943313a94",
+      "scope": "Workflow decisions bound to genuine PaySwap protocol drafts",
+      "status": "FINAL"
+    },
+    {
+      "id": "PRODUCT-FOUNDATION-04",
+      "pr": 41,
+      "mergeCommit": "e238089843228b77bb32f9a81d7c29ae8f2cba04",
+      "scope": "Governed execution-handoff preparation from product decisions",
+      "status": "FINAL"
+    },
+    {
+      "id": "PRODUCT-FOUNDATION-05",
+      "pr": 43,
+      "mergeCommit": "b16c72257f80f49407652dcf48ba8c989701fae4",
+      "scope": "Sandbox execution through existing ExecutionEngine with fail-closed unconfigured production mode",
+      "status": "FINAL",
+      "note": "Settlement and finality remain unclaimed by the product shell. PR #42 was closed/replaced because its base drifted; PR #43 is the accepted reconciled path."
+    }
+  ],
+  "items": [
+    {"id":"UI-001","status":"READY","dependsOn":[],"title":"Shared product shell and navigation grammar"},
+    {"id":"UI-002","status":"BLOCKED","dependsOn":["UI-001"],"title":"Home and Ask PaySwap outcome-first entry"},
+    {"id":"UI-003","status":"BLOCKED","dependsOn":["UI-002","UI-005"],"title":"Customer Pay / Track / Resolve journey"},
+    {"id":"UI-004","status":"BLOCKED","dependsOn":["UI-002","UI-005"],"title":"Merchant checkout / fulfillment journey"},
+    {"id":"UI-005","status":"BLOCKED","dependsOn":["UI-002"],"title":"Shared object/task detail pattern"},
+    {"id":"UI-006","status":"BLOCKED","dependsOn":["UI-003","UI-004","UI-005"],"title":"Activity, state, waiting, exception, and recovery UX"},
+    {"id":"UI-007","status":"BLOCKED","dependsOn":["UI-006"],"title":"Trust, evidence, authority, and progressive disclosure"},
+    {"id":"UI-008","status":"BLOCKED","dependsOn":["UI-007"],"title":"Remaining role-aware product surfaces"},
+    {"id":"UI-009","status":"BLOCKED","dependsOn":["UI-008"],"title":"Responsive, accessibility, and interaction polish"},
+    {"id":"UI-010","status":"BLOCKED","dependsOn":["UI-009"],"title":"Final UX dogfood, acceptance, and product closure"}
+  ],
+  "activeHandoffs": [],
+  "decisions": [
+    {
+      "type": "product-program-bootstrap",
+      "date": "2026-09-04",
+      "baseRevision": "d097b15431a10a402c1b686d8bd4d88457956616",
+      "note": "Persisted the product UI roadmap and FLOOOZ-adapted repository governance process. UI-001 is the next eligible item."
+    }
+  ],
+  "closure": {
+    "target": "UI-010",
+    "required": [
+      "shared product grammar",
+      "customer and merchant core journeys",
+      "state/uncertainty/waiting/recovery clarity",
+      "evidence and progressive disclosure",
+      "remaining role surfaces",
+      "responsive/accessibility acceptance",
+      "objective dogfood against UX success criteria",
+      "Architect approval, merge, and post-merge reconciliation"
+    ],
+    "whenClosed": "programStatus becomes ui_complete and all UI-001..UI-010 are FINAL"
+  }
+}
