@@ -16,6 +16,7 @@ from app.auth import (
     join_waitlist,
 )
 from app.workflows import get_task
+from src.intent import EconomicSlack, FulfillmentPolicy, Intent, IntentState
 
 
 class AuthShellTests(unittest.TestCase):
@@ -98,11 +99,45 @@ class AuthShellTests(unittest.TestCase):
         self.assertEqual(task["state"], "COMPLETED")
         self.assertEqual(task["selected_option"], "balanced")
 
+    def test_customer_decision_creates_sealed_draft_protocol_binding(self) -> None:
+        token = self.sign_in_demo("demo-customer")
+        response = self.client.post(
+            "/app/pay",
+            data={"csrf_token": token, "recipient": "Protocol Supplier", "amount": "8450.00", "asset": "USD", "deadline": "2030-01-02T12:00"},
+        )
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
+        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "balanced"})
+        response = self.client.post(f"/app/task/{task_id}/bind", data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        task = get_task(task_id, owner_id=1)
+        assert task is not None
+        self.assertEqual(task["state"], "WAITING")
+        self.assertIsNotNone(task["protocol_binding_json"])
+        from app.workflows import decode_protocol_binding
+        binding = decode_protocol_binding(task)
+        assert binding is not None
+        self.assertEqual(binding["state"], "DRAFT")
+        self.assertEqual(binding["authorization"], "NOT_AUTHORIZED")
+        intent = Intent.from_dict(binding["objects"]["intent"])
+        policy = FulfillmentPolicy.from_dict(binding["objects"]["policy"])
+        slack = EconomicSlack.from_dict(binding["objects"]["slack"])
+        self.assertEqual(intent.state, IntentState.DRAFT)
+        self.assertEqual(intent.spec.policy_id, policy.object_id)
+        self.assertEqual(intent.spec.slack_id, slack.object_id)
+        self.assertEqual(intent.spec.amount.value, 845000)
+        self.assertEqual(intent.spec.amount.scale, 2)
+        self.assertEqual(intent.spec.funding.sources[0].source_id, "product:user:1:default")
+        self.assertEqual(policy.spec.allow_asset_substitution, False)
+
     def test_merchant_can_create_checkout_and_customer_cannot(self) -> None:
         token = self.sign_in_demo("demo-merchant")
         response = self.client.post(
             "/app/checkout",
-            data={"csrf_token": token, "customer": "Customer One", "amount": "250.00", "asset": "USD", "reference": "ORDER-1042"},
+            data={"csrf_token": token, "customer": "Customer One", "amount": "250.00", "asset": "USD", "reference": "ORDER-1042", "deadline": "2030-01-03T12:00"},
         )
         self.assertEqual(response.status_code, 302)
         self.client.get(response.headers["Location"])
