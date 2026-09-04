@@ -9,7 +9,8 @@ from urllib.parse import urlparse
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from .auth import ROLE_LABELS, ROLES, authenticate, bootstrap_admin_from_env, create_user_from_waitlist, demo_role_cards, ensure_default_admin, ensure_demo_users, get_demo, join_waitlist, list_waitlist
-from .workflows import advance_task, create_task, decode_payload, get_task, list_tasks, route_options, validate_checkout, validate_pay
+from .protocol_bridge import build_protocol_binding
+from .workflows import advance_task, create_task, decode_payload, decode_protocol_binding, get_task, list_tasks, route_options, save_protocol_binding, validate_checkout, validate_pay
 
 
 def _safe_next(value: str | None) -> str:
@@ -180,7 +181,7 @@ def create_app() -> Flask:
     @csrf_protected
     def submit_checkout():
         try:
-            payload = validate_checkout(request.form.get("customer", ""), request.form.get("amount", ""), request.form.get("asset", ""), request.form.get("reference", ""))
+            payload = validate_checkout(request.form.get("customer", ""), request.form.get("amount", ""), request.form.get("asset", ""), request.form.get("reference", ""), request.form.get("deadline", ""))
             task_id = create_task(owner_id=owner_id(), owner_role="merchant", kind="checkout", payload=payload)
         except ValueError as exc:
             flash(str(exc), "error")
@@ -191,8 +192,8 @@ def create_app() -> Flask:
     @login_required()
     def task_detail(task_id: int):
         task = task_or_404(task_id)
-        state_labels = {"DRAFT": "Draft", "OPTIONS": "Options ready", "NEEDS_DECISION": "Needs your decision", "IN_PROGRESS": "In progress", "WAITING": "Waiting", "COMPLETED": "Completed", "NEEDS_ATTENTION": "Needs attention"}
-        return render_template("workflow_task.html", task=task, payload=decode_payload(task), options=route_options(task), state_label=state_labels[task["state"]])
+        state_labels = {"DRAFT": "Draft", "OPTIONS": "Options ready", "NEEDS_DECISION": "Needs your decision", "IN_PROGRESS": "In progress", "WAITING": "Waiting for governed execution", "COMPLETED": "Completed", "NEEDS_ATTENTION": "Needs attention"}
+        return render_template("workflow_task.html", task=task, payload=decode_payload(task), protocol_binding=decode_protocol_binding(task), options=route_options(task), state_label=state_labels[task["state"]])
 
     @app.post("/app/task/<int:task_id>/options")
     @login_required()
@@ -207,6 +208,9 @@ def create_app() -> Flask:
     @csrf_protected
     def choose_task_option(task_id: int):
         task = task_or_404(task_id)
+        if task["protocol_binding_json"] is not None:
+            flash("This task already has a protocol draft.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
         chosen = request.form.get("option", "")
         valid = {option["id"] for option in route_options(task)}
         if chosen not in valid:
@@ -215,11 +219,45 @@ def create_app() -> Flask:
         advance_task(task_id, owner_id=owner_id(), state="IN_PROGRESS", selected_option=chosen)
         return redirect(url_for("task_detail", task_id=task_id))
 
+    @app.post("/app/task/<int:task_id>/bind")
+    @login_required()
+    @csrf_protected
+    def bind_task_protocol(task_id: int):
+        task = task_or_404(task_id)
+        if task["protocol_binding_json"] is not None:
+            flash("This task already has a protocol draft.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        selected = task["selected_option"]
+        if task["state"] != "IN_PROGRESS" or not selected:
+            flash("Choose a workflow option before creating the protocol draft.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        user = current_user()
+        try:
+            binding = build_protocol_binding(
+                task_id=task_id,
+                owner_id=owner_id(),
+                username=user["username"],
+                kind=task["kind"],
+                payload=decode_payload(task),
+                selected_option=selected,
+            )
+            if not save_protocol_binding(task_id, owner_id=owner_id(), binding=binding):
+                flash("The protocol draft could not be recorded safely.", "error")
+                return redirect(url_for("task_detail", task_id=task_id))
+            advance_task(task_id, owner_id=owner_id(), state="WAITING")
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        return redirect(url_for("task_detail", task_id=task_id))
+
     @app.post("/app/task/<int:task_id>/simulate")
     @login_required()
     @csrf_protected
     def simulate_task(task_id: int):
-        task_or_404(task_id)
+        task = task_or_404(task_id)
+        if task["protocol_binding_json"] is not None:
+            flash("A protocol draft is now waiting for governed execution; sandbox simulation is disabled.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
         advance_task(task_id, owner_id=owner_id(), state="COMPLETED")
         return redirect(url_for("task_detail", task_id=task_id))
 

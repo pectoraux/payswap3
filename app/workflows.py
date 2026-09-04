@@ -20,7 +20,12 @@ def _connect() -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
-    conn.execute("CREATE TABLE IF NOT EXISTS product_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER NOT NULL, owner_role TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL, title TEXT NOT NULL, payload_json TEXT NOT NULL, selected_option TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)")
+    conn.execute("CREATE TABLE IF NOT EXISTS product_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER NOT NULL, owner_role TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL, title TEXT NOT NULL, payload_json TEXT NOT NULL, selected_option TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, protocol_binding_json TEXT, protocol_binding_created_at TEXT)")
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(product_tasks)")}
+    if "protocol_binding_json" not in columns:
+        conn.execute("ALTER TABLE product_tasks ADD COLUMN protocol_binding_json TEXT")
+    if "protocol_binding_created_at" not in columns:
+        conn.execute("ALTER TABLE product_tasks ADD COLUMN protocol_binding_created_at TEXT")
     return conn
 
 
@@ -34,7 +39,7 @@ def create_task(*, owner_id: int, owner_role: str, kind: str, payload: dict[str,
     now = _now()
     conn = _connect()
     try:
-        cur = conn.execute("INSERT INTO product_tasks(owner_id,owner_role,kind,state,title,payload_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)", (owner_id, owner_role, kind, "DRAFT", payload.get("title") or TASK_KINDS[kind], json.dumps(payload, sort_keys=True), now, now))
+        cur = conn.execute("INSERT INTO product_tasks(owner_id,owner_role,kind,state,title,payload_json,selected_option,created_at,updated_at,protocol_binding_json,protocol_binding_created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (owner_id, owner_role, kind, "DRAFT", payload.get("title") or TASK_KINDS[kind], json.dumps(payload, sort_keys=True), None, now, now, None, None))
         conn.commit()
         return int(cur.lastrowid)
     finally:
@@ -69,8 +74,25 @@ def advance_task(task_id: int, *, owner_id: int, state: str, selected_option: st
         conn.close()
 
 
+def save_protocol_binding(task_id: int, *, owner_id: int, binding: dict[str, Any]) -> bool:
+    now = _now()
+    encoded = json.dumps(binding, sort_keys=True)
+    conn = _connect()
+    try:
+        cur = conn.execute("UPDATE product_tasks SET protocol_binding_json=?, protocol_binding_created_at=?, updated_at=? WHERE id=? AND owner_id=? AND protocol_binding_json IS NULL", (encoded, now, now, task_id, owner_id))
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
 def decode_payload(row: sqlite3.Row) -> dict[str, Any]:
     return json.loads(row["payload_json"])
+
+
+def decode_protocol_binding(row: sqlite3.Row) -> dict[str, Any] | None:
+    value = row["protocol_binding_json"]
+    return None if value is None else json.loads(value)
 
 
 def route_options(row: sqlite3.Row) -> list[dict[str, str]]:
@@ -87,12 +109,25 @@ def route_options(row: sqlite3.Row) -> list[dict[str, str]]:
     ]
 
 
+def _validate_amount(amount: str) -> None:
+    text = amount.strip()
+    if not text or any(ch not in "0123456789." for ch in text) or text.count(".") > 1:
+        raise ValueError("Enter a valid positive amount.")
+    whole, dot, fraction = text.partition(".")
+    if not whole or (dot and not fraction) or (not dot and not whole):
+        raise ValueError("Enter a valid positive amount.")
+    if len(fraction) > 18:
+        raise ValueError("Use no more than 18 decimal places.")
+    digits = (whole + fraction).lstrip("0") or "0"
+    if int(digits) <= 0:
+        raise ValueError("Enter a valid positive amount.")
+
+
 def validate_pay(recipient: str, amount: str, asset: str, deadline: str) -> dict[str, str]:
     recipient, amount, asset, deadline = recipient.strip(), amount.strip(), asset.strip().upper(), deadline.strip()
     if not recipient or len(recipient) > 200:
         raise ValueError("Enter a recipient.")
-    if not amount or any(ch not in "0123456789." for ch in amount) or amount.count(".") > 1 or float(amount) <= 0:
-        raise ValueError("Enter a valid positive amount.")
+    _validate_amount(amount)
     if not asset or len(asset) > 20:
         raise ValueError("Enter an asset symbol.")
     if not deadline:
@@ -100,14 +135,15 @@ def validate_pay(recipient: str, amount: str, asset: str, deadline: str) -> dict
     return {"title": f"Pay {recipient}", "recipient": recipient, "amount": amount, "asset": asset, "deadline": deadline}
 
 
-def validate_checkout(customer: str, amount: str, asset: str, reference: str) -> dict[str, str]:
-    customer, amount, asset, reference = customer.strip(), amount.strip(), asset.strip().upper(), reference.strip()
+def validate_checkout(customer: str, amount: str, asset: str, reference: str, deadline: str) -> dict[str, str]:
+    customer, amount, asset, reference, deadline = customer.strip(), amount.strip(), asset.strip().upper(), reference.strip(), deadline.strip()
     if not customer or len(customer) > 200:
         raise ValueError("Enter a customer.")
-    if not amount or any(ch not in "0123456789." for ch in amount) or amount.count(".") > 1 or float(amount) <= 0:
-        raise ValueError("Enter a valid positive amount.")
+    _validate_amount(amount)
     if not asset or len(asset) > 20:
         raise ValueError("Enter an asset symbol.")
     if not reference or len(reference) > 120:
         raise ValueError("Enter a checkout reference.")
-    return {"title": f"Checkout for {customer}", "customer": customer, "amount": amount, "asset": asset, "reference": reference}
+    if not deadline:
+        raise ValueError("Choose when the checkout should settle.")
+    return {"title": f"Checkout for {customer}", "customer": customer, "amount": amount, "asset": asset, "reference": reference, "deadline": deadline}
