@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}PaySwap{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">P</span><span>PaySwap</span></a>
+  <nav>
+    {% if current_user %}
+      <a href="{{ url_for('dashboard') }}">Home</a>
+      {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+      <span class="user-chip">{{ current_user.name }} · {{ role_labels[current_user.role] }}</span>
+      {% if current_user.demo %}<span class="demo-chip">Demo</span>{% endif %}
+      <a href="{{ url_for('logout') }}">Sign out</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Sign in</a>
+      <a class="nav-cta" href="{{ url_for('waitlist') }}">Join waitlist</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer><span>PaySwap · financial coordination, without the complexity.</span><span>Protocol semantics stay behind the experience.</span></footer>
+</body>
+</html>

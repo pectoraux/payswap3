@@ -6,3 +6,5 @@ node_modules/
 dist/
 coverage/
 .pytest_cache/
+app/data/*.sqlite3
+*.sqlite3
