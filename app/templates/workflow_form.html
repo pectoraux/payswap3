@@ -6,7 +6,8 @@
     <span class="eyebrow">{{ eyebrow }}</span>
     <h1>{{ heading }}</h1>
     <p>{{ description }}</p>
-    <div class="steps"><div><b>1</b><span>Describe the outcome.</span></div><div><b>2</b><span>Review meaningful choices.</span></div><div><b>3</b><span>Run safely in the sandbox.</span></div></div>
+    <div class="steps"><div><b>1</b><span>Describe the outcome.</span></div><div><b>2</b><span>Review meaningful choices.</span></div><div><b>3</b><span>Create a protocol draft.</span></div></div>
+    <p class="muted">Deadlines are entered as UTC so the protocol receives an explicit, comparable timestamp.</p>
   </div>
   <div class="auth-card">
     <form method="post">
@@ -22,6 +23,7 @@
       <label>Amount</label><input name="amount" inputmode="decimal" placeholder="8450.00" required>
       <label>Asset</label><input name="asset" value="USD" maxlength="20" required>
       <label>Checkout reference</label><input name="reference" placeholder="ORDER-1042" required>
+      <label>When should it settle?</label><input name="deadline" type="datetime-local" required>
       <button class="button primary full" type="submit">Review checkout</button>
       {% endif %}
     </form>
