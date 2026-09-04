@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} — PaySwap{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-intro">
+    <span class="eyebrow">{{ eyebrow }}</span>
+    <h1>{{ heading }}</h1>
+    <p>{{ description }}</p>
+    <div class="steps"><div><b>1</b><span>Describe the outcome.</span></div><div><b>2</b><span>Review meaningful choices.</span></div><div><b>3</b><span>Run safely in the sandbox.</span></div></div>
+  </div>
+  <div class="auth-card">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if kind == 'pay' %}
+      <label>Who should receive it?</label><input name="recipient" autocomplete="name" placeholder="Supplier, person, or business" required>
+      <label>Amount</label><input name="amount" inputmode="decimal" placeholder="8450.00" required>
+      <label>Asset</label><input name="asset" value="USD" maxlength="20" required>
+      <label>When should it arrive?</label><input name="deadline" type="datetime-local" required>
+      <button class="button primary full" type="submit">Review payment</button>
+      {% else %}
+      <label>Customer</label><input name="customer" autocomplete="name" placeholder="Customer name or reference" required>
+      <label>Amount</label><input name="amount" inputmode="decimal" placeholder="8450.00" required>
+      <label>Asset</label><input name="asset" value="USD" maxlength="20" required>
+      <label>Checkout reference</label><input name="reference" placeholder="ORDER-1042" required>
+      <button class="button primary full" type="submit">Review checkout</button>
+      {% endif %}
+    </form>
+  </div>
+</section>
+{% endblock %}

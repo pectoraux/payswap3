@@ -19,9 +19,10 @@ The full product UX architecture and design-council decision record lives in `sp
 - admin conversion from waitlist entry → real account
 - role-aware workspaces
 - explicit demo mode with one-click persona entry for every product role
-- SQLite persistence for waitlist/users
+- SQLite persistence for waitlist/users and product workflow projections
 - scrypt password hashing
 - HTTP-only, SameSite session cookies
+- CSRF protection on state-changing browser requests
 
 ### Development administrator bootstrap
 
@@ -57,3 +58,12 @@ The demo personas are flagged as demo sessions and are not granted real financia
 The waitlist stores the original role and organization request. Administrators can change the eventual account role while preserving that original request.
 
 The account-creation screen is deliberately simple: select the queue entry, confirm identity/role, issue the user's first temporary password, and create the account. Future additions such as invitations, password reset, SSO, passkeys, suspension, and audit history can layer onto the same lifecycle without changing the user's mental model.
+
+## First product workflows
+
+The current shell contains a real **sandbox workflow projection** for the two highest-value journeys:
+
+- Customer: `Pay someone → Review options → Choose → Simulate observed outcome`
+- Merchant: `Create checkout → Review options → Choose → Simulate observed outcome`
+
+Workflow records are owner-scoped and persisted alongside the application database. They are explicitly sandbox projections: they do not move funds, create settlement claims, or replace protocol execution/authority. The next integration stage can bind the approved plan to governed intent, routing, execution, evidence, and finality paths without changing the user-facing mental model.
