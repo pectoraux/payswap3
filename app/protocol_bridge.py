@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from src.core import Provenance
+from src.execution import ExecutionStepSpec, make_plan_record, make_step_record, step_object_id
 from src.intent import (
     Amount,
     EconomicSlack,
@@ -86,23 +87,17 @@ def _require_utc_timestamp(value: str) -> str:
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _provenance(*, username: str, recorded_at: str) -> Provenance:
+def _provenance(*, username: str, recorded_at: str, source: str = "product-workflow") -> Provenance:
     return Provenance(
         issuer=username,
-        source="product-workflow",
+        source=source,
         recorded_at=recorded_at,
         evidence_refs=(),
     )
 
 
 def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: str, payload: dict[str, Any], selected_option: str) -> dict[str, Any]:
-    """Translate a product decision into governed protocol declarations.
-
-    This function creates sealed DRAFT/ACTIVE protocol objects only. It never
-    authorizes the intent, selects a real market route, moves funds, executes a
-    payment, or records settlement/finality. Those remain owned by the
-    protocol and its governed execution/evidence authorities.
-    """
+    """Translate a product decision into governed protocol declarations."""
     objectives = POLICY_OBJECTIVES.get(selected_option)
     if objectives is None:
         raise ValueError("Choose a supported workflow option before binding it.")
@@ -150,8 +145,6 @@ def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: 
         environment_id="sandbox",
         domain_id="product",
         spec=IntentSpec(
-            # Human-entered recipients/customers stay in the product payload.
-            # The protocol receives an opaque, canonical destination reference.
             destination_id=f"product-destination:{task_id}",
             amount=amount,
             deadline=deadline,
@@ -183,4 +176,66 @@ def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: 
             "slack": slack.to_dict(),
         },
         "binding_id": str(uuid4()),
+    }
+
+
+def build_execution_handoff(*, task_id: int, username: str, binding: dict[str, Any], selected_option: str) -> dict[str, Any]:
+    """Prepare a sealed execution plan without authorizing or starting it."""
+    if binding.get("state") != "DRAFT":
+        raise ValueError("Only a draft protocol intent can enter the execution handoff.")
+    intent_id = binding.get("intent_id")
+    if not isinstance(intent_id, str) or not intent_id:
+        raise ValueError("The protocol draft is missing its intent reference.")
+    recorded_at = _utc_now()
+    correlation_id = binding.get("correlation_id") or f"product-task:{task_id}"
+    plan_id = f"product-task-{task_id}-execution"
+    step_id = step_object_id(plan_id, 1)
+    provenance = _provenance(username=username, recorded_at=recorded_at, source="product-execution-handoff")
+    plan = make_plan_record(
+        plan_id=plan_id,
+        source_ref=intent_id,
+        summary=f"Execution handoff for product workflow option {selected_option}",
+        environment_id="sandbox",
+        domain_id="product",
+        provenance=provenance,
+        causation_id=f"task:{task_id}:execution-handoff",
+        correlation_id=correlation_id,
+    )
+    step = make_step_record(
+        step_spec=ExecutionStepSpec(
+            step_id=step_id,
+            plan_id=plan_id,
+            position=1,
+            adapter_id="pending-adapter",
+            effect_type="payment/transfer",
+            payload={
+                "product_task_id": task_id,
+                "intent_id": intent_id,
+                "destination_reference": binding.get("destination_reference"),
+                "selected_option": selected_option,
+            },
+            reservation_ref=f"pending-reservation:{intent_id}",
+            max_attempts=1,
+        ),
+        environment_id="sandbox",
+        domain_id="product",
+        provenance=provenance,
+        causation_id=f"task:{task_id}:execution-handoff",
+        correlation_id=correlation_id,
+    )
+    return {
+        "execution_plan_id": plan.object_id,
+        "execution_step_id": step.object_id,
+        "state": plan.state.value,
+        "step_state": step.state.value,
+        "environment": "sandbox",
+        "created_at": recorded_at,
+        "correlation_id": correlation_id,
+        "source_intent_id": intent_id,
+        "authorization": "NOT_AUTHORIZED",
+        "execution": "NOT_STARTED",
+        "adapter_resolution": "PENDING",
+        "reservation": "PENDING",
+        "plan": plan.to_dict(),
+        "step": step.to_dict(),
     }
