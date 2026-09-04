@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+import hmac
 import os
 import secrets
 from functools import wraps
+from urllib.parse import urlparse
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
-from .auth import ROLE_LABELS, ROLES, authenticate, bootstrap_admin_from_env, create_user_from_waitlist, demo_role_cards, ensure_demo_users, get_demo, join_waitlist, list_waitlist
+from .auth import ROLE_LABELS, ROLES, authenticate, bootstrap_admin_from_env, create_user_from_waitlist, demo_role_cards, ensure_default_admin, ensure_demo_users, get_demo, join_waitlist, list_waitlist
+
+
+def _safe_next(value: str | None) -> str:
+    if not value:
+        return url_for("dashboard")
+    parsed = urlparse(value)
+    if parsed.scheme or parsed.netloc or not value.startswith("/"):
+        return url_for("dashboard")
+    return value
 
 
 def create_app() -> Flask:
@@ -19,10 +30,29 @@ def create_app() -> Flask:
         SESSION_COOKIE_SECURE=os.getenv("PAYSWAP_COOKIE_SECURE", "false").lower() == "true",
     )
     ensure_demo_users()
+    ensure_default_admin()
     bootstrap_admin_from_env()
 
     def current_user():
         return session.get("user")
+
+    def csrf_token() -> str:
+        token = session.get("_csrf_token")
+        if not token:
+            token = secrets.token_urlsafe(32)
+            session["_csrf_token"] = token
+        return token
+
+    def csrf_protected(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            expected = session.get("_csrf_token")
+            supplied = request.form.get("csrf_token", "")
+            if not expected or not supplied or not hmac.compare_digest(expected, supplied):
+                flash("Your session expired. Please try again.", "error")
+                return redirect(url_for("login"))
+            return fn(*args, **kwargs)
+        return wrapper
 
     def login_required(role=None):
         def decorator(fn):
@@ -34,13 +64,22 @@ def create_app() -> Flask:
                 if role and user.get("role") != role:
                     flash("That area is restricted to administrators.", "error")
                     return redirect(url_for("dashboard"))
+                if role == "admin" and user.get("demo"):
+                    flash("Demo administrator access is view-only.", "error")
+                    return redirect(url_for("dashboard"))
                 return fn(*args, **kwargs)
             return wrapper
         return decorator
 
     @app.context_processor
     def inject():
-        return {"current_user": current_user(), "roles": ROLES, "role_labels": ROLE_LABELS, "demo_mode": app.config["DEMO_MODE"]}
+        return {
+            "current_user": current_user(),
+            "roles": ROLES,
+            "role_labels": ROLE_LABELS,
+            "demo_mode": app.config["DEMO_MODE"],
+            "csrf_token": csrf_token,
+        }
 
     @app.get("/")
     def index():
@@ -52,16 +91,18 @@ def create_app() -> Flask:
     def login():
         if current_user():
             return redirect(url_for("dashboard"))
-        return render_template("login.html", demo_cards=demo_role_cards())
+        return render_template("login.html", demo_cards=demo_role_cards(), next_url=_safe_next(request.args.get("next")))
 
     @app.post("/login")
+    @csrf_protected
     def do_login():
         user = authenticate(request.form.get("username", ""), request.form.get("password", ""))
         if not user:
             flash("The email or password didn't match.", "error")
             return redirect(url_for("login"))
+        session.clear()
         session["user"] = {"id": user["id"], "username": user["username"], "name": user["name"], "role": user["role"], "demo": False}
-        return redirect(request.args.get("next") or url_for("dashboard"))
+        return redirect(_safe_next(request.form.get("next")))
 
     @app.get("/demo/<username>")
     def demo_login(username: str):
@@ -72,10 +113,12 @@ def create_app() -> Flask:
         if not user:
             flash("Demo account not found.", "error")
             return redirect(url_for("login"))
+        session.clear()
         session["user"] = {"id": user["id"], "username": user["username"], "name": user["name"], "role": user["role"], "demo": True}
         return redirect(url_for("dashboard"))
 
-    @app.get("/logout")
+    @app.post("/logout")
+    @csrf_protected
     def logout():
         session.clear()
         return redirect(url_for("index"))
@@ -85,6 +128,7 @@ def create_app() -> Flask:
         return render_template("waitlist.html")
 
     @app.post("/waitlist")
+    @csrf_protected
     def submit_waitlist():
         ok, message = join_waitlist(request.form.get("name", ""), request.form.get("email", ""), request.form.get("role", "customer"), request.form.get("organization", ""))
         flash(message, "success" if ok else "error")
@@ -101,6 +145,7 @@ def create_app() -> Flask:
         return render_template("admin.html", waitlist=list_waitlist())
 
     @app.post("/admin/create-account")
+    @csrf_protected
     @login_required("admin")
     def admin_create_account():
         try:
@@ -112,6 +157,7 @@ def create_app() -> Flask:
         return redirect(url_for("admin"))
 
     return app
+
 
 app = create_app()
 

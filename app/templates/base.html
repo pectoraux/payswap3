@@ -12,10 +12,10 @@
   <nav>
     {% if current_user %}
       <a href="{{ url_for('dashboard') }}">Home</a>
-      {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+      {% if current_user.role == 'admin' and not current_user.demo %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
       <span class="user-chip">{{ current_user.name }} · {{ role_labels[current_user.role] }}</span>
       {% if current_user.demo %}<span class="demo-chip">Demo</span>{% endif %}
-      <a href="{{ url_for('logout') }}">Sign out</a>
+      <form method="post" action="{{ url_for('logout') }}" class="nav-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-link" type="submit">Sign out</button></form>
     {% else %}
       <a href="{{ url_for('login') }}">Sign in</a>
       <a class="nav-cta" href="{{ url_for('waitlist') }}">Join waitlist</a>

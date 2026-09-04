@@ -20,3 +20,7 @@ jobs:
         run: python3 scripts/validate_architecture.py
       - name: Validate governance
         run: python3 scripts/validate_governance.py
+      - name: Install product shell dependencies
+        run: python3 -m pip install -r app/requirements.txt
+      - name: Verify product authentication shell
+        run: python3 -m unittest app.test_auth

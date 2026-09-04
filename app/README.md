@@ -2,11 +2,20 @@
 
 This folder is the user-facing shell around the frozen PaySwap protocol. It deliberately does **not** become a second financial authority.
 
-## What is here
+## UX direction
 
-- calm, outcome-first landing and workspace
-- password-authenticated administrator/user accounts
-- waitlist-only sign-up
+The product follows an outcome-first interaction model:
+
+`Outcome → Options → Decision → Execution → Evidence → Resolution`
+
+The interface is role-aware, but the navigation grammar stays shared so Customer, Merchant, Provider, Liquidity Provider, Developer, Agent, Operator, and Administrator experiences feel like one product rather than eight dashboards. Protocol internals appear through progressive disclosure instead of occupying the default workspace.
+
+The full product UX architecture and design-council decision record lives in `spec/product/ux-architecture-v0.2.md`.
+
+## Authentication and access
+
+- waitlist-only public sign-up
+- password-authenticated real user/admin accounts
 - admin conversion from waitlist entry → real account
 - role-aware workspaces
 - explicit demo mode with one-click persona entry for every product role
@@ -14,18 +23,18 @@ This folder is the user-facing shell around the frozen PaySwap protocol. It deli
 - scrypt password hashing
 - HTTP-only, SameSite session cookies
 
-## First-run admin bootstrap
+### Development administrator bootstrap
 
-The repository never stores administrator passwords. Supply the administrator credentials only through the runtime environment:
+A non-demo administrator is seeded on first startup as:
 
-```bash
-export PAYSWAP_ADMIN_EMAIL='your-admin@example.com'
-export PAYSWAP_ADMIN_PASSWORD='use-a-runtime-secret'
-export PAYSWAP_SESSION_SECRET='replace-with-a-long-random-secret'
-python3 -m app
+```text
+username: ekontetevi@gmail
+password: Payswap123456
 ```
 
-The bootstrap is idempotent: restarting with the configured credentials updates the real admin account rather than creating duplicates. Rotate any credential that has previously appeared in source control.
+The repository contains only a one-way scrypt verifier for that development bootstrap password, never the plaintext password. An environment-configured administrator (`PAYSWAP_ADMIN_EMAIL` / `PAYSWAP_ADMIN_PASSWORD`) takes precedence and is suitable for deployment-specific credentials. Rotate the bootstrap credential before using the product outside controlled development/demo environments.
+
+For deployment, also set `PAYSWAP_SESSION_SECRET` and use `PAYSWAP_COOKIE_SECURE=true` behind HTTPS.
 
 ## Demo access
 
@@ -46,3 +55,5 @@ The demo personas are flagged as demo sessions and are not granted real financia
 `Sign up → waitlist → admin review → account creation → normal sign in`
 
 The waitlist stores the original role and organization request. Administrators can change the eventual account role while preserving that original request.
+
+The account-creation screen is deliberately simple: select the queue entry, confirm identity/role, issue the user's first temporary password, and create the account. Future additions such as invitations, password reset, SSO, passkeys, suspension, and audit history can layer onto the same lifecycle without changing the user's mental model.
