@@ -16,16 +16,16 @@ This folder is the user-facing shell around the frozen PaySwap protocol. It deli
 
 ## First-run admin bootstrap
 
-The repository does not commit a plaintext administrator password. Set the requested bootstrap credentials in the runtime environment:
+The repository never stores administrator passwords. Supply the administrator credentials only through the runtime environment:
 
 ```bash
-export PAYSWAP_ADMIN_EMAIL='ekontetevi@gmail.com'
-export PAYSWAP_ADMIN_PASSWORD='Payswap123456'
+export PAYSWAP_ADMIN_EMAIL='your-admin@example.com'
+export PAYSWAP_ADMIN_PASSWORD='use-a-runtime-secret'
 export PAYSWAP_SESSION_SECRET='replace-with-a-long-random-secret'
 python3 -m app
 ```
 
-The bootstrap is idempotent: restarting with the same credentials updates the real admin account rather than creating duplicates.
+The bootstrap is idempotent: restarting with the configured credentials updates the real admin account rather than creating duplicates. Rotate any credential that has previously appeared in source control.
 
 ## Demo access
 
