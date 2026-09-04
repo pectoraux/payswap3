@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from .auth import ROLE_LABELS, ROLES, authenticate, bootstrap_admin_from_env, create_user_from_waitlist, demo_role_cards, ensure_default_admin, ensure_demo_users, get_demo, join_waitlist, list_waitlist
+from .workflows import advance_task, create_task, decode_payload, get_task, list_tasks, route_options, validate_checkout, validate_pay
 
 
 def _safe_next(value: str | None) -> str:
@@ -70,6 +71,16 @@ def create_app() -> Flask:
                 return fn(*args, **kwargs)
             return wrapper
         return decorator
+
+    def owner_id() -> int:
+        return int(current_user()["id"])
+
+    def task_or_404(task_id: int):
+        task = get_task(task_id, owner_id=owner_id())
+        if not task:
+            from flask import abort
+            abort(404)
+        return task
 
     @app.context_processor
     def inject():
@@ -137,7 +148,80 @@ def create_app() -> Flask:
     @app.get("/app")
     @login_required()
     def dashboard():
-        return render_template("dashboard.html")
+        return render_template("dashboard.html", tasks=list_tasks(owner_id=owner_id()))
+
+    def role_required(expected_role: str):
+        return login_required(expected_role)
+
+    @app.get("/app/pay")
+    @role_required("customer")
+    def pay():
+        return render_template("workflow_form.html", kind="pay", eyebrow="CUSTOMER WORKSPACE", heading="Pay someone", description="Describe the outcome. PaySwap will show a small number of meaningful sandbox choices before you decide.")
+
+    @app.post("/app/pay")
+    @role_required("customer")
+    @csrf_protected
+    def submit_pay():
+        try:
+            payload = validate_pay(request.form.get("recipient", ""), request.form.get("amount", ""), request.form.get("asset", ""), request.form.get("deadline", ""))
+            task_id = create_task(owner_id=owner_id(), owner_role="customer", kind="pay", payload=payload)
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("pay"))
+        return redirect(url_for("task_detail", task_id=task_id))
+
+    @app.get("/app/checkout")
+    @role_required("merchant")
+    def checkout():
+        return render_template("workflow_form.html", kind="checkout", eyebrow="MERCHANT WORKSPACE", heading="Create a checkout", description="Turn a customer request into a clear payment outcome without exposing network internals.")
+
+    @app.post("/app/checkout")
+    @role_required("merchant")
+    @csrf_protected
+    def submit_checkout():
+        try:
+            payload = validate_checkout(request.form.get("customer", ""), request.form.get("amount", ""), request.form.get("asset", ""), request.form.get("reference", ""))
+            task_id = create_task(owner_id=owner_id(), owner_role="merchant", kind="checkout", payload=payload)
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("checkout"))
+        return redirect(url_for("task_detail", task_id=task_id))
+
+    @app.get("/app/task/<int:task_id>")
+    @login_required()
+    def task_detail(task_id: int):
+        task = task_or_404(task_id)
+        state_labels = {"DRAFT": "Draft", "OPTIONS": "Options ready", "NEEDS_DECISION": "Needs your decision", "IN_PROGRESS": "In progress", "WAITING": "Waiting", "COMPLETED": "Completed", "NEEDS_ATTENTION": "Needs attention"}
+        return render_template("workflow_task.html", task=task, payload=decode_payload(task), options=route_options(task), state_label=state_labels[task["state"]])
+
+    @app.post("/app/task/<int:task_id>/options")
+    @login_required()
+    @csrf_protected
+    def show_task_options(task_id: int):
+        task_or_404(task_id)
+        advance_task(task_id, owner_id=owner_id(), state="OPTIONS")
+        return redirect(url_for("task_detail", task_id=task_id))
+
+    @app.post("/app/task/<int:task_id>/choose")
+    @login_required()
+    @csrf_protected
+    def choose_task_option(task_id: int):
+        task = task_or_404(task_id)
+        chosen = request.form.get("option", "")
+        valid = {option["id"] for option in route_options(task)}
+        if chosen not in valid:
+            flash("Choose one of the presented options.", "error")
+            return redirect(url_for("task_detail", task_id=task_id))
+        advance_task(task_id, owner_id=owner_id(), state="IN_PROGRESS", selected_option=chosen)
+        return redirect(url_for("task_detail", task_id=task_id))
+
+    @app.post("/app/task/<int:task_id>/simulate")
+    @login_required()
+    @csrf_protected
+    def simulate_task(task_id: int):
+        task_or_404(task_id)
+        advance_task(task_id, owner_id=owner_id(), state="COMPLETED")
+        return redirect(url_for("task_detail", task_id=task_id))
 
     @app.get("/admin")
     @login_required("admin")
@@ -145,8 +229,8 @@ def create_app() -> Flask:
         return render_template("admin.html", waitlist=list_waitlist())
 
     @app.post("/admin/create-account")
-    @csrf_protected
     @login_required("admin")
+    @csrf_protected
     def admin_create_account():
         try:
             waitlist_id = int(request.form.get("waitlist_id", "0"))
