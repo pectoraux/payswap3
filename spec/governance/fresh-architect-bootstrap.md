@@ -28,13 +28,28 @@ A fresh Architect with zero conversation history must be able to direct the enti
 22. `spec/development-state/frontier-state.json`
 23. `spec/development-state/checkpoint-state.json`
 24. `spec/development-state/future-roadmap.json`
-25. the current eligible Work Order(s).
+25. the current eligible protocol Work Order(s).
+
+## Product/UI takeover
+
+When the protocol Work Orders are complete, or when the current task is product/UI implementation, also read:
+
+26. `spec/product/README.md`
+27. `spec/product/ux-architecture-v0.2.md`
+28. `spec/product/implementation-roadmap.md`
+29. `spec/product/work-items.md`
+30. `spec/development-state/product-program-state.json`
+31. the current eligible product work order in `spec/product/work-orders/`.
+
+The protocol program currently ends at `WORK-033` and is complete. Product/UI work is a separate bounded program. Do not create `WORK-034+` merely to advance UI implementation.
 
 ## Takeover
 
-Verify repository identity, current `main`, clean/dirty state, frozen architecture, validators, Work Order identities and registry. Recompute eligibility from authoritative facts.
+Verify repository identity, current `main`, clean/dirty state, frozen architecture, validators, Work Order/work-item identities and state. Recompute eligibility from authoritative facts.
 
 ## Eligibility
+
+For protocol work:
 
 ```text
 hard dependencies complete
@@ -45,22 +60,24 @@ AND stable current base
 AND no architecture contradiction
 ```
 
+For product/UI work, use the same control model against `spec/product/work-items.md` and `spec/development-state/product-program-state.json`.
+
 ## Parallelism
 
-Prefer the largest eligible antichain of Work Orders with disjoint authoritative change surfaces. Never consume an unmerged sibling. Use an integration Work Order for composition.
+Prefer the largest eligible antichain of protocol Work Orders or product work items with disjoint authoritative change surfaces. Never consume an unmerged sibling. Use an integration item for composition.
 
 ## Dispatch
 
-Give each Z.ai worker exactly one Work Order and one branch/PR. The execution context includes repository, current main SHA, Work Order, dependency types, owned/forbidden surfaces, assurance, proofs, dogfooding, checkpoint contract, registry and stop conditions.
+Give each worker exactly one protocol Work Order or product work item and one branch/PR. The execution context includes repository, current main SHA, assigned contract, dependency facts, owned/forbidden surfaces, assurance, required proofs, dogfooding/UX evidence, checkpoint contract, registry, and stop conditions.
 
 ## Review
 
-Review the exact head against the repository contract: scope, public contracts, authority boundaries, failure/retry/reconciliation, accounting, simulation parity, extension isolation, proofs and dogfooding.
+Review the exact head against the relevant repository contract. For protocol work, review scope, public contracts, authority boundaries, failure/retry/reconciliation, accounting, simulation parity, extension isolation, proofs and dogfooding. For UI work, review UX contract conformance, state/next-action clarity, progressive disclosure, role/access correctness, responsive/accessibility quality, and evidence of useful journeys.
 
 ## Completion
 
-Only Architect merge establishes completion. Post-merge reconciliation records the actual merge and recomputes the frontier.
+Only Architect merge establishes completion. Post-merge reconciliation records the actual merge and recomputes protocol frontier or product eligibility. The corresponding human-readable roadmap and machine state must remain synchronized.
 
 ## Interruption
 
-Resume from program state, active handoff, current PR, last verified revision, Work Order and evidence. Never reconstruct authority from conversation history.
+Resume from the relevant protocol or product program state, active handoff, current PR, last verified revision, assigned contract and evidence. Never reconstruct authority from conversation history.
