@@ -61,9 +61,11 @@ The account-creation screen is deliberately simple: select the queue entry, conf
 
 ## First product workflows
 
-The current shell contains a real **sandbox workflow projection** for the two highest-value journeys:
+The shell contains product workflow projections for the two highest-value journeys:
 
-- Customer: `Pay someone → Review options → Choose → Simulate observed outcome`
-- Merchant: `Create checkout → Review options → Choose → Simulate observed outcome`
+- Customer: `Pay someone → Review options → Choose → Create protocol draft → Wait for governed execution`
+- Merchant: `Create checkout → Review options → Choose → Create protocol draft → Wait for governed execution`
 
-Workflow records are owner-scoped and persisted alongside the application database. They are explicitly sandbox projections: they do not move funds, create settlement claims, or replace protocol execution/authority. The next integration stage can bind the approved plan to governed intent, routing, execution, evidence, and finality paths without changing the user-facing mental model.
+The product persists each task owner-scoped. Before the binding step, it can still run an isolated sandbox simulation. After a choice is made, **Create protocol draft** translates that decision into the existing PaySwap `Intent`, `FulfillmentPolicy`, and `EconomicSlack` objects using the protocol's canonical scaled-integer `Amount`, immutable envelope/provenance model, and sealed serialization. The resulting intent remains `DRAFT` and the task becomes `WAITING` for the governed execution path.
+
+The product binding adapter does **not** authorize the intent, select a real market route, execute a payment, move funds, assert settlement, or assert finality. Funding is represented only as the protocol's opaque funding-source reference; capability resolution remains outside the product shell. This preserves the protocol's single-authority boundary while making the user decision a real protocol declaration rather than a product-only simulation.
