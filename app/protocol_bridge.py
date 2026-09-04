@@ -149,7 +149,9 @@ def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: 
         environment_id="sandbox",
         domain_id="product",
         spec=IntentSpec(
-            destination_id=(payload.get("recipient") or payload.get("customer") or payload["reference"]),
+            # Human-entered recipients/customers stay in the product payload.
+            # The protocol receives an opaque, canonical destination reference.
+            destination_id=f"product-destination:{task_id}",
             amount=amount,
             deadline=deadline,
             funding=FundingBinding.build(
@@ -166,6 +168,7 @@ def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: 
         "intent_id": intent.object_id,
         "policy_id": policy.object_id,
         "slack_id": slack.object_id,
+        "destination_reference": intent.spec.destination_id,
         "state": intent.state.value,
         "environment": "sandbox",
         "created_at": recorded_at,
