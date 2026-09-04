@@ -41,8 +41,8 @@ class AuthShellTests(unittest.TestCase):
         return token
 
     def sign_in_demo(self, username: str) -> str:
-        response = self.client.get(f"/demo/{username}")
-        self.assertEqual(response.status_code, 302)
+        response = self.client.get(f"/demo/{username}", follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
         with self.client.session_transaction() as state:
             token = state.get("_csrf_token")
         self.assertIsNotNone(token)
@@ -105,15 +105,12 @@ class AuthShellTests(unittest.TestCase):
             data={"csrf_token": token, "customer": "Customer One", "amount": "250.00", "asset": "USD", "reference": "ORDER-1042"},
         )
         self.assertEqual(response.status_code, 302)
-        with self.client.session_transaction() as state:
-            token = state["_csrf_token"]
         self.client.get(response.headers["Location"])
-        with self.client.session_transaction() as state:
-            token = state["_csrf_token"]
         with self.client.session_transaction() as state:
             state["user"] = {"id": 1, "username": "demo-customer", "name": "Maya Customer", "role": "customer", "demo": True}
         response = self.client.get("/app/checkout")
         self.assertEqual(response.status_code, 302)
+        self.assertIn("/app", response.headers["Location"])
 
     def test_task_data_is_owner_scoped(self) -> None:
         token = self.sign_in_demo("demo-customer")
