@@ -273,11 +273,12 @@ def create_app() -> Flask:
             flash("This task already has an execution result.", "error")
             return redirect(url_for("task_detail", task_id=task_id))
         binding = decode_protocol_binding(task)
-        if binding is None:
-            flash("Create a protocol draft before requesting execution.", "error")
+        handoff = decode_execution_handoff(task)
+        if binding is None or handoff is None:
+            flash("Prepare the execution handoff before requesting execution.", "error")
             return redirect(url_for("task_detail", task_id=task_id))
         try:
-            runtime = execute_sandbox(task_id=task_id, binding=binding)
+            runtime = execute_sandbox(task_id=task_id, binding=binding, handoff=handoff)
             if not save_execution_runtime(task_id, owner_id=owner_id(), runtime=runtime):
                 flash("The execution result could not be recorded safely.", "error")
                 return redirect(url_for("task_detail", task_id=task_id))
