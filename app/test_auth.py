@@ -15,6 +15,7 @@ from app.auth import (
     ensure_demo_users,
     join_waitlist,
 )
+from app.workflows import get_task
 
 
 class AuthShellTests(unittest.TestCase):
@@ -34,6 +35,14 @@ class AuthShellTests(unittest.TestCase):
     def csrf(self, path: str = "/login") -> str:
         response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
+        with self.client.session_transaction() as state:
+            token = state.get("_csrf_token")
+        self.assertIsNotNone(token)
+        return token
+
+    def sign_in_demo(self, username: str) -> str:
+        response = self.client.get(f"/demo/{username}")
+        self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as state:
             token = state.get("_csrf_token")
         self.assertIsNotNone(token)
@@ -66,6 +75,53 @@ class AuthShellTests(unittest.TestCase):
         row = conn.execute("SELECT id FROM waitlist WHERE email=?", ("no-token@example.com",)).fetchone()
         conn.close()
         self.assertIsNone(row)
+
+    def test_customer_can_complete_sandbox_pay_workflow(self) -> None:
+        token = self.sign_in_demo("demo-customer")
+        response = self.client.post(
+            "/app/pay",
+            data={"csrf_token": token, "recipient": "Supplier Co", "amount": "8450.00", "asset": "USD", "deadline": "2030-01-02T12:00"},
+        )
+        self.assertEqual(response.status_code, 302)
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        task = get_task(task_id, owner_id=1)
+        self.assertIsNotNone(task)
+        assert task is not None
+        self.assertEqual(task["state"], "DRAFT")
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
+        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "balanced"})
+        self.client.post(f"/app/task/{task_id}/simulate", data={"csrf_token": token})
+        task = get_task(task_id, owner_id=1)
+        self.assertEqual(task["state"], "COMPLETED")
+        self.assertEqual(task["selected_option"], "balanced")
+
+    def test_merchant_can_create_checkout_and_customer_cannot(self) -> None:
+        token = self.sign_in_demo("demo-merchant")
+        response = self.client.post(
+            "/app/checkout",
+            data={"csrf_token": token, "customer": "Customer One", "amount": "250.00", "asset": "USD", "reference": "ORDER-1042"},
+        )
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        with self.client.session_transaction() as state:
+            state["user"] = {"id": 1, "username": "demo-customer", "name": "Maya Customer", "role": "customer", "demo": True}
+        response = self.client.get("/app/checkout")
+        self.assertEqual(response.status_code, 302)
+
+    def test_task_data_is_owner_scoped(self) -> None:
+        token = self.sign_in_demo("demo-customer")
+        response = self.client.post("/app/pay", data={"csrf_token": token, "recipient": "Private Co", "amount": "10", "asset": "USD", "deadline": "2030-01-02T12:00"})
+        self.assertEqual(response.status_code, 302)
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        self.assertIsNotNone(get_task(task_id, owner_id=1))
+        self.assertIsNone(get_task(task_id, owner_id=999999))
 
     def test_waitlist_then_admin_account_creation(self) -> None:
         token = self.csrf("/waitlist")
