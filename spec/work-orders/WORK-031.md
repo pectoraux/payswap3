@@ -1,6 +1,6 @@
 # WORK-031 — Merchant/end-to-end global fulfillment dogfood
 
-Status: in_flight
+Status: complete
 
 Objective: prove a real user-facing merchant outcome through the complete network, including delay/credit, recovery and evidence.
 
@@ -39,3 +39,7 @@ The worker context must include the exact current `main` revision, all dependenc
 ## Activation
 
 Activated by the Architect on 2026-09-03 after WORK-024, WORK-025, WORK-028 and WORK-030 were verified complete and merged. Starting implementation frontier: `9dc4b2f67d2ac87693f513814c60ae915ea5ee7c`. Owned integration surface: `IG-006`. Next action: implement and prove the merchant/end-to-end global fulfillment dogfood without introducing a new authority.
+
+## Post-merge finalization
+
+Merged by the Architect as PR #35 at Git commit `05feb8fd0553f35533ff7e53a75a048d6f90dc00` on 2026-09-04. The merge was performed from the reviewed worker head `2392e215b66524007680b3684892167a25026872`; GitHub reported the pull request successfully merged. Required W031 evidence remains persisted in `spec/dogfooding/DOGFOOD-031.md` and `src/integration/flywheel/`.
