@@ -18,6 +18,7 @@
     "note": "WORK-001 through WORK-033 are complete. Product UI work does not create WORK-034+ unless a separately governed protocol scope is authorized."
   },
   "currentMainAtBootstrap": "d097b15431a10a402c1b686d8bd4d88457956616",
+  "currentMain": "45b1934c9d53e0660c5b6dc9dc1abaf8d73aecc6",
   "completedProductMilestones": [
     {
       "id": "PRODUCT-FOUNDATION-01",
@@ -54,6 +55,13 @@
       "scope": "Sandbox execution through existing ExecutionEngine with fail-closed unconfigured production mode",
       "status": "FINAL",
       "note": "Settlement and finality remain unclaimed by the product shell. PR #42 was closed/replaced because its base drifted; PR #43 is the accepted reconciled path."
+    },
+    {
+      "id": "PRODUCT-GOVERNANCE-BOOTSTRAP",
+      "pr": 44,
+      "mergeCommit": "45b1934c9d53e0660c5b6dc9dc1abaf8d73aecc6",
+      "scope": "FLOOOZ-adapted repository governance for product/UI implementation",
+      "status": "FINAL"
     }
   ],
   "items": [
@@ -75,6 +83,16 @@
       "date": "2026-09-04",
       "baseRevision": "d097b15431a10a402c1b686d8bd4d88457956616",
       "note": "Persisted the product UI roadmap and FLOOOZ-adapted repository governance process. UI-001 is the next eligible item."
+    },
+    {
+      "type": "product-roadmap-governance-merge",
+      "date": "2026-09-04",
+      "pr": 44,
+      "mergeCommit": "45b1934c9d53e0660c5b6dc9dc1abaf8d73aecc6",
+      "baseRevision": "d097b15431a10a402c1b686d8bd4d88457956616",
+      "ciRun": "33848764695",
+      "ciConclusion": "success",
+      "note": "Repository governance for the UI program is now persisted. Post-merge state records main at the accepted merge revision."
     }
   ],
   "closure": {
