@@ -2,7 +2,7 @@
 
 PaySwap is an open financial coordination protocol that fulfills economic intents across heterogeneous financial capabilities.
 
-**Repository is the source of truth.** Architecture, governance, work orders, dependencies, proof requirements, dogfooding rules, and operational development state live under `spec/`. The implementation is intentionally driven from repository-resident Work Orders rather than chat instructions.
+**Repository is the source of truth.** Architecture, governance, work orders, dependencies, proof requirements, dogfooding rules, product UX contracts, and operational development state live under `spec/`. The implementation is intentionally driven from repository-resident contracts rather than chat instructions.
 
 ## Frozen architecture
 
@@ -18,7 +18,23 @@ PaySwap is an open financial coordination protocol that fulfills economic intent
 - Integration gates combine independently merged capabilities only after their hard dependencies complete.
 - Tests prove correctness; real-product dogfooding proves integrated usefulness.
 - Findings are durable evidence and become targeted Work Items through governed intake; workers do not silently expand scope.
-- Architect merge is the completion event. Post-merge finalization only records the authoritative Git fact.
+- Architect merge is the completion event. Post-merge finalization records the authoritative Git fact.
+
+## Protocol program state
+
+The original protocol Work Order program is complete through `WORK-033`. The product/UI program is tracked separately and does not imply new protocol Work Orders.
+
+## Product/UI program
+
+The product/UI roadmap is governed by:
+
+- `spec/product/implementation-roadmap.md` — frozen human-readable sequencing and progress.
+- `spec/product/work-items.md` — product dependency/status ledger.
+- `spec/product/work-orders/` — detailed product acceptance contracts.
+- `spec/development-state/product-program-state.json` — machine-readable UI program state and evidence.
+- `spec/product/ux-architecture-v0.2.md` — UX contract.
+
+Start product implementation by reading those artifacts together. The current next eligible item is `UI-001`.
 
 ## Repository navigation
 
@@ -26,8 +42,9 @@ PaySwap is an open financial coordination protocol that fulfills economic intent
 spec/
   architecture/v0.1/      frozen constitution and protocol design
   governance/             development control-plane contracts
-  development-state/      canonical machine-readable program state
-  work-orders/            atomic implementation units
+  development-state/      canonical protocol and product machine state
+  work-orders/            atomic protocol implementation units
+  product/                product UX contract, roadmap, work items, and UI work orders
   architecture-change-requests/
 
 agents/                   worker/architect protocols and role contracts
@@ -46,7 +63,10 @@ A new Architect should start with:
 4. `spec/development-state/governance-model.json`
 5. `spec/development-state/dependency-state.json`
 6. `spec/development-state/frontier-state.json`
-7. the eligible Work Order(s) in `spec/work-orders/`
+7. `spec/product/implementation-roadmap.md`
+8. `spec/product/work-items.md`
+9. `spec/development-state/product-program-state.json`
+10. the eligible protocol Work Order(s) or product work order in the corresponding directory
 
 Do not rely on prior conversation state.
 
@@ -66,4 +86,4 @@ The canonical target repository is `pectoraux/payswap3`. The repository is desig
 
 A fresh Architect may use [`agents/architect-prompt.md`](agents/architect-prompt.md) as the operating contract. Worker execution is governed by [`agents/zai-worker-prompt.md`](agents/zai-worker-prompt.md) and [`agents/schemas/execution-context.schema.json`](agents/schemas/execution-context.schema.json).
 
-The Architect should dispatch the largest dependency-eligible, protected-surface-disjoint set of Work Orders. A worker's implementation freedom is deliberately broad inside its Work Order and deliberately narrow across semantic boundaries.
+The Architect should dispatch the largest dependency-eligible, protected-surface-disjoint set of protocol Work Orders or product work items. A worker's implementation freedom is deliberately broad inside its assigned contract and deliberately narrow across semantic boundaries.
