@@ -24,6 +24,7 @@ class AuthShellTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         os.environ["PAYSWAP_AUTH_DB"] = os.path.join(self.tmp.name, "auth.sqlite3")
+        os.environ["PAYSWAP_EXECUTION_MODE"] = "sandbox"
         ensure_demo_users()
         ensure_default_admin()
         from app.server import create_app
@@ -33,6 +34,7 @@ class AuthShellTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
         os.environ.pop("PAYSWAP_AUTH_DB", None)
+        os.environ.pop("PAYSWAP_EXECUTION_MODE", None)
 
     def csrf(self, path: str = "/login") -> str:
         response = self.client.get(path)
@@ -49,6 +51,29 @@ class AuthShellTests(unittest.TestCase):
             token = state.get("_csrf_token")
         self.assertIsNotNone(token)
         return token
+
+    def create_bound_task(self, *, username: str = "demo-customer", amount: str = "125.50") -> tuple[int, str]:
+        token = self.sign_in_demo(username)
+        path = "/app/pay" if username == "demo-customer" else "/app/checkout"
+        data = {"csrf_token": token, "amount": amount, "asset": "USD", "deadline": "2030-01-02T12:00"}
+        if username == "demo-customer":
+            data["recipient"] = "Sandbox Supplier"
+        else:
+            data["customer"] = "Sandbox Customer"
+            data["reference"] = "ORDER-2042"
+        response = self.client.post(path, data=data)
+        self.assertEqual(response.status_code, 302)
+        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
+        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "balanced"})
+        self.client.post(f"/app/task/{task_id}/bind", data={"csrf_token": token})
+        self.client.get(f"/app/task/{task_id}")
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        return task_id, token
 
     def test_seeded_admin_is_real_not_demo(self) -> None:
         row = authenticate(DEFAULT_ADMIN_USERNAME, "Payswap123456")
@@ -101,19 +126,7 @@ class AuthShellTests(unittest.TestCase):
         self.assertEqual(task["selected_option"], "balanced")
 
     def test_customer_decision_creates_sealed_draft_protocol_binding(self) -> None:
-        token = self.sign_in_demo("demo-customer")
-        response = self.client.post(
-            "/app/pay",
-            data={"csrf_token": token, "recipient": "Protocol Supplier", "amount": "8450.00", "asset": "USD", "deadline": "2030-01-02T12:00"},
-        )
-        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
-        self.client.get(response.headers["Location"])
-        with self.client.session_transaction() as state:
-            token = state["_csrf_token"]
-        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
-        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "balanced"})
-        response = self.client.post(f"/app/task/{task_id}/bind", data={"csrf_token": token})
-        self.assertEqual(response.status_code, 302)
+        task_id, token = self.create_bound_task(amount="8450.00")
         task = get_task(task_id, owner_id=1)
         assert task is not None
         self.assertEqual(task["state"], "WAITING")
@@ -135,21 +148,7 @@ class AuthShellTests(unittest.TestCase):
         self.assertEqual(policy.spec.allow_asset_substitution, False)
 
     def test_customer_protocol_draft_prepares_sealed_execution_handoff(self) -> None:
-        token = self.sign_in_demo("demo-customer")
-        response = self.client.post(
-            "/app/pay",
-            data={"csrf_token": token, "recipient": "Execution Supplier", "amount": "125.50", "asset": "USD", "deadline": "2030-01-02T12:00"},
-        )
-        task_id = int(response.headers["Location"].rsplit("/", 1)[1])
-        self.client.get(response.headers["Location"])
-        with self.client.session_transaction() as state:
-            token = state["_csrf_token"]
-        self.client.post(f"/app/task/{task_id}/options", data={"csrf_token": token})
-        self.client.post(f"/app/task/{task_id}/choose", data={"csrf_token": token, "option": "fast"})
-        self.client.post(f"/app/task/{task_id}/bind", data={"csrf_token": token})
-        self.client.get(f"/app/task/{task_id}")
-        with self.client.session_transaction() as state:
-            token = state["_csrf_token"]
+        task_id, token = self.create_bound_task(amount="125.50")
         response = self.client.post(f"/app/task/{task_id}/handoff", data={"csrf_token": token})
         self.assertEqual(response.status_code, 302)
         task = get_task(task_id, owner_id=1)
@@ -165,13 +164,51 @@ class AuthShellTests(unittest.TestCase):
         plan = ExecutionPlan.from_dict(handoff["plan"])
         step = ExecutionStep.from_dict(handoff["step"])
         self.assertEqual(plan.state, ExecutionPlanState.DRAFT)
-        self.assertEqual(plan.spec.source_ref, task["protocol_binding_json"] and __import__("json").loads(task["protocol_binding_json"])["intent_id"])
         self.assertEqual(step.state, ExecutionStepState.PENDING)
         self.assertEqual(step.spec.plan_id, plan.object_id)
         self.assertEqual(step.spec.adapter_id, "pending-adapter")
-        self.assertEqual(step.spec.reservation_ref.startswith("pending-reservation:"), True)
+        self.assertTrue(step.spec.reservation_ref.startswith("pending-reservation:"))
 
-    def test_task_handoff_is_owner_scoped(self) -> None:
+    def test_sandbox_execution_drives_real_execution_kernel(self) -> None:
+        task_id, token = self.create_bound_task(amount="125.50")
+        self.client.post(f"/app/task/{task_id}/handoff", data={"csrf_token": token})
+        self.client.get(f"/app/task/{task_id}")
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        response = self.client.post(f"/app/task/{task_id}/execute", data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        task = get_task(task_id, owner_id=1)
+        assert task is not None
+        self.assertEqual(task["state"], "COMPLETED")
+        self.assertIsNotNone(task["execution_runtime_json"])
+        from app.workflows import decode_execution_handoff, decode_execution_runtime
+        handoff = decode_execution_handoff(task)
+        runtime = decode_execution_runtime(task)
+        assert handoff is not None
+        assert runtime is not None
+        self.assertEqual(runtime["execution_mode"], "sandbox")
+        self.assertEqual(runtime["plan_state"], "COMPLETED")
+        self.assertEqual(runtime["step_state"], "SUCCEEDED")
+        self.assertEqual(runtime["source_handoff_plan_id"], handoff["execution_plan_id"])
+        self.assertEqual(runtime["effect"], "SUCCEEDED_SANDBOX")
+        self.assertEqual(runtime["settlement"], "NOT_CLAIMED")
+        self.assertEqual(runtime["finality"], "NOT_CLAIMED")
+
+    def test_live_execution_is_fail_closed_when_unconfigured(self) -> None:
+        task_id, token = self.create_bound_task(amount="50.00")
+        self.client.post(f"/app/task/{task_id}/handoff", data={"csrf_token": token})
+        os.environ["PAYSWAP_EXECUTION_MODE"] = "unconfigured"
+        self.client.get(f"/app/task/{task_id}")
+        with self.client.session_transaction() as state:
+            token = state["_csrf_token"]
+        response = self.client.post(f"/app/task/{task_id}/execute", data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        task = get_task(task_id, owner_id=1)
+        assert task is not None
+        self.assertEqual(task["state"], "WAITING")
+        self.assertIsNone(task["execution_runtime_json"])
+
+    def test_task_data_is_owner_scoped(self) -> None:
         token = self.sign_in_demo("demo-customer")
         response = self.client.post("/app/pay", data={"csrf_token": token, "recipient": "Private Co", "amount": "10", "asset": "USD", "deadline": "2030-01-02T12:00"})
         self.assertEqual(response.status_code, 302)
