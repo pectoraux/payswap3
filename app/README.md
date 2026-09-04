@@ -6,7 +6,7 @@ This folder is the user-facing shell around the frozen PaySwap protocol. It deli
 
 The product follows an outcome-first interaction model:
 
-`Outcome → Options → Decision → Execution → Evidence → Resolution`
+`Outcome → Options → Decision → Protocol Draft → Execution Handoff → Waiting`
 
 The interface is role-aware, but the navigation grammar stays shared so Customer, Merchant, Provider, Liquidity Provider, Developer, Agent, Operator, and Administrator experiences feel like one product rather than eight dashboards. Protocol internals appear through progressive disclosure instead of occupying the default workspace.
 
@@ -59,13 +59,13 @@ The waitlist stores the original role and organization request. Administrators c
 
 The account-creation screen is deliberately simple: select the queue entry, confirm identity/role, issue the user's first temporary password, and create the account. Future additions such as invitations, password reset, SSO, passkeys, suspension, and audit history can layer onto the same lifecycle without changing the user's mental model.
 
-## First product workflows
+## Product workflow and governed handoff
 
 The shell contains product workflow projections for the two highest-value journeys:
 
-- Customer: `Pay someone → Review options → Choose → Create protocol draft → Wait for governed execution`
-- Merchant: `Create checkout → Review options → Choose → Create protocol draft → Wait for governed execution`
+- Customer: `Pay someone → Review options → Choose → Create protocol draft → Prepare execution handoff → Wait`
+- Merchant: `Create checkout → Review options → Choose → Create protocol draft → Prepare execution handoff → Wait`
 
-The product persists each task owner-scoped. Before the binding step, it can still run an isolated sandbox simulation. After a choice is made, **Create protocol draft** translates that decision into the existing PaySwap `Intent`, `FulfillmentPolicy`, and `EconomicSlack` objects using the protocol's canonical scaled-integer `Amount`, immutable envelope/provenance model, and sealed serialization. The resulting intent remains `DRAFT` and the task becomes `WAITING` for the governed execution path.
+The product persists each task owner-scoped. **Create protocol draft** translates the decision into the existing PaySwap `Intent`, `FulfillmentPolicy`, and `EconomicSlack` objects using canonical scaled-integer `Amount`, immutable envelope/provenance, and sealed serialization. **Prepare execution handoff** then creates a `payswap/execution-plan/v1` in `DRAFT` and an internal `execution/step/v1` in `PENDING`, linked back to the intent.
 
-The product binding adapter does **not** authorize the intent, select a real market route, execute a payment, move funds, assert settlement, or assert finality. Funding is represented only as the protocol's opaque funding-source reference; capability resolution remains outside the product shell. This preserves the protocol's single-authority boundary while making the user decision a real protocol declaration rather than a product-only simulation.
+The product never authorizes the intent or execution plan, reserves capacity, selects a real adapter/route, submits an external effect, or asserts clearing, settlement, or finality. Adapter and reservation references are opaque placeholders until governed execution infrastructure resolves them. See `spec/product/execution-handoff-v0.2.md`.
