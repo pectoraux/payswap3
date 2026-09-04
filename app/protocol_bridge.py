@@ -64,8 +64,7 @@ def _parse_amount(value: str, asset: str) -> Amount:
         raise ValueError("The selected workflow contains an invalid amount.") from exc
     if not decimal_value.is_finite() or decimal_value <= 0:
         raise ValueError("The selected workflow contains an invalid amount.")
-    normalized = decimal_value.normalize()
-    scale = max(0, -normalized.as_tuple().exponent)
+    scale = max(0, -decimal_value.as_tuple().exponent)
     if scale > 18:
         raise ValueError("Amount precision exceeds the protocol limit.")
     integer_value = int(decimal_value * (10 ** scale))
@@ -79,9 +78,11 @@ def _require_utc_timestamp(value: str) -> str:
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ValueError("Choose a valid deadline with an explicit UTC offset.") from exc
+        raise ValueError("Choose a valid deadline.") from exc
+    # HTML datetime-local values are intentionally timezone-naive. The form
+    # labels them as UTC, so normalize a naive value as UTC at the product edge.
     if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ValueError("Choose a deadline with an explicit UTC offset.")
+        parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -98,7 +99,7 @@ def build_protocol_binding(*, task_id: int, owner_id: int, username: str, kind: 
     """Translate a product decision into governed protocol declarations.
 
     This function creates sealed DRAFT/ACTIVE protocol objects only. It never
-    authorizes the intent, selects real market routes, moves funds, executes a
+    authorizes the intent, selects a real market route, moves funds, executes a
     payment, or records settlement/finality. Those remain owned by the
     protocol and its governed execution/evidence authorities.
     """
